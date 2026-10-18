@@ -6,10 +6,10 @@ import { db } from "@/lib/db";
 import { lock, requireUnlocked, unlock } from "@/lib/auth";
 import { PHOTO_BUCKET, POSITIONS, T, TIMEZONE } from "@/lib/config";
 import { localInputToDate } from "@/lib/time";
-import { getGame } from "@/lib/data";
+import { getGame, getPlayers } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
-import { resultMessage } from "@/lib/reminder";
-import { resultOf } from "@/lib/types";
+import { availabilityMessage, resultMessage } from "@/lib/reminder";
+import { availableCount, resultOf, type PlayerStatus } from "@/lib/types";
 import { syncLeague } from "@/lib/leagueRun";
 
 export type FormState = { error?: string; ok?: string };
@@ -184,11 +184,55 @@ export async function syncLeagueNow(): Promise<FormState> {
 
 /** A player marking themselves away (or back in) for one game. No PIN: it's their own availability. */
 export async function setAway(gameId: string, playerId: string, away: boolean): Promise<FormState> {
+  const [game, players] = await Promise.all([getGame(gameId), getPlayers()]);
+  if (!game) return { error: "Game not found" };
+  if (game.away.includes(playerId) === away) return {}; // double tap: nothing changed, nothing to announce
   const { error } = away
     ? await db().from(T.away).upsert({ game_id: gameId, player_id: playerId }, { onConflict: "game_id,player_id" })
     : await db().from(T.away).delete().eq("game_id", gameId).eq("player_id", playerId);
   if (error) return { error: error.message };
+
+  // Once the manager has set a lineup, the whole team hears about changes (except the person who made it).
+  const player = players.find((p) => p.id === playerId);
+  if (player && game.lineup.length > 0 && new Date(game.starts_at).getTime() > Date.now()) {
+    const after = { ...game, away: away ? [...game.away, playerId] : game.away.filter((id) => id !== playerId) };
+    const message = {
+      ...availabilityMessage(game, player, away, availableCount(after, players), players.length),
+      url: `/games/${gameId}`,
+    };
+    const others = (await getSubscriptions()).filter((sub) => sub.player_id !== playerId);
+    await Promise.all(others.map((sub) => sendPush(sub, message)));
+  }
+
   revalidatePath("/");
+  return {};
+}
+
+/** Manager's lineup grid: set one player's status for one game (+ playing, " available, − unavailable). */
+export async function setPlayerStatus(gameId: string, playerId: string, status: PlayerStatus): Promise<FormState> {
+  await requireUnlocked();
+  const game = await getGame(gameId);
+  if (!game) return { error: "Game not found" };
+  const spot = game.lineup.find((s) => s.player.id === playerId);
+
+  if (status === "play" && !spot) {
+    const taken = new Set(game.lineup.map((s) => s.position));
+    const free = POSITIONS.find((p) => !taken.has(p));
+    if (!free) return { error: `Already ${POSITIONS.length} playing` };
+    const { error } = await db().from(T.gamePlayers).insert({ game_id: gameId, player_id: playerId, position: free });
+    if (error) return { error: error.message };
+  }
+  if (status !== "play" && spot) {
+    const { error } = await db().from(T.gamePlayers).delete().eq("game_id", gameId).eq("player_id", playerId);
+    if (error) return { error: error.message };
+  }
+  const { error } =
+    status === "away"
+      ? await db().from(T.away).upsert({ game_id: gameId, player_id: playerId }, { onConflict: "game_id,player_id" })
+      : await db().from(T.away).delete().eq("game_id", gameId).eq("player_id", playerId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
   return {};
 }
 

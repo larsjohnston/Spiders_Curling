@@ -39,6 +39,14 @@ export function statusesFor(game: Pick<Game, "lineup" | "away">): Record<string,
   return out;
 }
 
+/** A curling team needs four on the ice. */
+export const TEAM_SIZE = 4;
+
+/** How many of the active roster haven't said they're out. */
+export function availableCount(game: Pick<Game, "away">, players: Pick<Player, "id">[]): number {
+  return players.filter((p) => !game.away.includes(p.id)).length;
+}
+
 export type Result = "W" | "L" | "T";
 
 /** Result from the score we entered. */

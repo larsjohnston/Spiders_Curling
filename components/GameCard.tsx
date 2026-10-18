@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, formatTime } from "@/lib/time";
-import { effectiveResult, resultOf, type Game, type Player } from "@/lib/types";
+import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game, type Player } from "@/lib/types";
 import GameLineup from "./GameLineup";
 
 export const RESULT_STYLE = { W: "text-green-600", L: "text-stone-red", T: "text-muted" } as const;
@@ -27,8 +27,17 @@ export default function GameCard({
   const started = start.getTime() <= now;
   const result = effectiveResult(game);
   const scored = resultOf(game) !== null;
+  const available = availableCount(game, players);
+  const short = !started && available < TEAM_SIZE;
   return (
-    <article className={`rounded-xl border bg-card p-4 ${next ? "border-stone-blue" : "border-line"}`}>
+    <article
+      className={`rounded-xl border bg-card p-4 ${short ? "border-amber-500" : next ? "border-stone-blue" : "border-line"}`}
+    >
+      {short && (
+        <div className="-mx-4 -mt-4 mb-3 rounded-t-xl bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white">
+          ⚠️ Only {available} available. Need {TEAM_SIZE}.
+        </div>
+      )}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-medium text-muted">

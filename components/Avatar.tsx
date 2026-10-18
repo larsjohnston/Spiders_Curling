@@ -1,6 +1,6 @@
 import type { Player } from "@/lib/types";
 
-const SIZES = { sm: "h-10 w-10 text-sm", md: "h-14 w-14 text-lg", lg: "h-20 w-20 text-2xl" };
+const SIZES = { xs: "h-8 w-8 text-xs", sm: "h-10 w-10 text-sm", md: "h-14 w-14 text-lg", lg: "h-20 w-20 text-2xl" };
 
 function initials(name: string): string {
   return name

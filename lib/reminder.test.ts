@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gamesDueForReminder, reminderMessage, resultMessage } from "./reminder";
+import { availabilityMessage, gamesDueForReminder, reminderMessage, resultMessage } from "./reminder";
 import { dateToLocalInput, localInputToDate, tomorrowKey } from "./time";
 import type { Game } from "./types";
 
@@ -81,6 +81,32 @@ describe("reminderMessage", () => {
 
   it("adds the opponent's league record when known", () => {
     expect(reminderMessage(g, "t", "1–1–1").title).toBe("Tomorrow 7:00pm vs Smith (1–1–1)");
+  });
+});
+
+describe("availabilityMessage", () => {
+  const g = {
+    starts_at: localInputToDate("2026-10-20T18:45", TZ).toISOString(),
+    opponent: "Kuzma, C.",
+    lineup: [
+      { position: "skip" as const, player: player("l", "Lars") },
+      { position: "vice" as const, player: player("e", "Egg") },
+    ],
+  };
+
+  it("flags a starter dropping out and a short-handed team", () => {
+    expect(availabilityMessage(g, { id: "e", name: "Egg" }, true, 3, 6)).toEqual({
+      title: "Egg can't make it: Tue, Oct 20 6:45pm vs Kuzma, C.",
+      body: "3 of 6 available · was in the lineup, needs a sub · short-handed (need 4)",
+    });
+  });
+
+  it("keeps it short for a sub, and for coming back in", () => {
+    expect(availabilityMessage(g, { id: "t", name: "Tup" }, true, 5, 6).body).toBe("5 of 6 available");
+    expect(availabilityMessage(g, { id: "t", name: "Tup" }, false, 6, 6)).toEqual({
+      title: "Tup is back in: Tue, Oct 20 6:45pm vs Kuzma, C.",
+      body: "6 of 6 available",
+    });
   });
 });
 

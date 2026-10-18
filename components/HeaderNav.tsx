@@ -75,6 +75,9 @@ export default function HeaderNav({ players, unlocked }: { players: Pick<Player,
             <div className="border-t border-line" />
             {unlocked ? (
               <>
+                <Link href="/lineups" className={item}>
+                  Lineups
+                </Link>
                 <Link href="/games/new" className={item}>
                   + Add game
                 </Link>

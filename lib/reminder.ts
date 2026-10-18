@@ -1,6 +1,6 @@
 import { POSITIONS, REMINDER_HOUR, TIMEZONE } from "./config";
-import { formatTime, localDateKey, localHour, tomorrowKey } from "./time";
-import { resultOf, type Game } from "./types";
+import { formatDay, formatTime, localDateKey, localHour, tomorrowKey } from "./time";
+import { resultOf, TEAM_SIZE, type Game } from "./types";
 
 type PushText = { title: string; body: string };
 
@@ -40,6 +40,26 @@ export function reminderMessage(
   ].filter(Boolean);
   const record = opponentRecord ? ` (${opponentRecord})` : "";
   return { title: `Tomorrow ${time} vs ${game.opponent}${record}`, body: parts.join(" · ") };
+}
+
+/** Team-wide push when a player opts out of (or back into) a game the manager has set a lineup for. */
+export function availabilityMessage(
+  game: Pick<Game, "starts_at" | "opponent" | "lineup">,
+  player: { id: string; name: string },
+  away: boolean,
+  available: number,
+  rosterSize: number,
+): PushText {
+  const start = new Date(game.starts_at);
+  const when = `${formatDay(start, TIMEZONE)} ${formatTime(start, TIMEZONE)} vs ${game.opponent}`;
+  const starter = game.lineup.some((s) => s.player.id === player.id);
+  const parts = [`${available} of ${rosterSize} available`];
+  if (away && starter) parts.push("was in the lineup, needs a sub");
+  if (available < TEAM_SIZE) parts.push(`short-handed (need ${TEAM_SIZE})`);
+  return {
+    title: away ? `${player.name} can't make it: ${when}` : `${player.name} is back in: ${when}`,
+    body: parts.join(" · "),
+  };
 }
 
 const STORY_PUSH_LIMIT = 180;

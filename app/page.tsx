@@ -3,7 +3,7 @@ import { getGames, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/dat
 import { isUnlocked } from "@/lib/auth";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, localDateKey, localInputToDate } from "@/lib/time";
-import { effectiveResult, resultOf, type Game } from "@/lib/types";
+import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game } from "@/lib/types";
 import GameCard, { RESULT_STYLE } from "@/components/GameCard";
 
 // A game counts as "upcoming" until 3 hours after its start so a game in progress stays on top.
@@ -37,8 +37,24 @@ export default async function SchedulePage() {
     if (r) record[r]++;
   }
 
+  // Games that haven't started yet with fewer than four people still available.
+  const shortGames = upcoming
+    .filter((g) => new Date(g.starts_at).getTime() > now)
+    .map((g) => ({ game: g, available: availableCount(g, players) }))
+    .filter((s) => s.available < TEAM_SIZE);
+
   return (
     <div className="space-y-6">
+      {shortGames.length > 0 && (
+        <div role="status" className="space-y-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-medium text-white">
+          {shortGames.map(({ game, available }) => (
+            <Link key={game.id} href={`/games/${game.id}`} className="block">
+              ⚠️ {formatDay(new Date(game.starts_at), TIMEZONE)} vs {game.opponent}: only {available} available, need{" "}
+              {TEAM_SIZE}. ›
+            </Link>
+          ))}
+        </div>
+      )}
       <section>
         <div className="text-sm text-muted">Record</div>
         <div className="text-3xl font-bold tabular-nums">
@@ -75,9 +91,20 @@ export default async function SchedulePage() {
               opponentRecord={leagueRecord(league, game.opponent)}
             />
           ) : (
-            <div key={date} className="rounded-xl border border-dashed border-line px-4 py-3 text-sm text-muted">
-              <span className="font-medium text-ink">{formatDay(localInputToDate(`${date}T12:00`, TIMEZONE), TIMEZONE)}</span> ·
-              Bye week
+            <div
+              key={date}
+              className="flex items-center gap-4 rounded-xl border-2 border-stone-blue bg-stone-blue/10 px-4 py-4"
+            >
+              <span className="text-3xl" aria-hidden>
+                🛋️
+              </span>
+              <div>
+                <div className="text-sm font-medium text-muted">
+                  {formatDay(localInputToDate(`${date}T12:00`, TIMEZONE), TIMEZONE)}
+                </div>
+                <div className="text-xl font-black tracking-wide text-stone-blue">BYE WEEK</div>
+                <div className="text-sm text-muted">No game this week</div>
+              </div>
             </div>
           ),
         )}
