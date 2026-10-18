@@ -1,6 +1,12 @@
 import type { Position } from "./config";
 
-export type Player = { id: string; name: string; sort_order: number; active: boolean };
+export type Player = {
+  id: string;
+  name: string;
+  sort_order: number;
+  active: boolean;
+  photo_url: string | null;
+};
 
 export type LineupSpot = { position: Position; player: Player };
 
@@ -14,6 +20,8 @@ export type Game = {
   their_score: number | null;
   reminder_sent_at: string | null;
   lineup: LineupSpot[];
+  /** Players who said they can't make it. */
+  away: string[];
 };
 
 export type Result = "W" | "L" | "T";

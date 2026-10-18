@@ -13,6 +13,7 @@ type Initial = {
   sheet: string;
   notes: string;
   lineup: Partial<Record<(typeof POSITIONS)[number], string>>;
+  away: string[];
 };
 
 export default function GameForm({ players, initial }: { players: Player[]; initial: Initial }) {
@@ -61,6 +62,18 @@ export default function GameForm({ players, initial }: { players: Player[]; init
             </select>
           </div>
         ))}
+      </fieldset>
+
+      <fieldset>
+        <legend className="label">Away (can&apos;t make it)</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {players.map((p) => (
+            <label key={p.id} className="flex items-center gap-2 rounded-lg border border-line px-2 py-2 text-sm">
+              <input type="checkbox" name="away" value={p.id} defaultChecked={initial.away.includes(p.id)} className="h-4 w-4" />
+              <span className="truncate">{p.name}</span>
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <div>

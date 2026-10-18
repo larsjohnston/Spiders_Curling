@@ -4,7 +4,7 @@ import { dateToLocalInput, localInputToDate, tomorrowKey } from "./time";
 import type { Game } from "./types";
 
 const TZ = "America/Edmonton";
-const player = (id: string, name: string) => ({ id, name, sort_order: 0, active: true });
+const player = (id: string, name: string) => ({ id, name, sort_order: 0, active: true, photo_url: null });
 
 describe("time helpers", () => {
   it("converts Edmonton wall time to UTC across DST", () => {

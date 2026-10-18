@@ -9,7 +9,7 @@ export default async function RosterPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold">Roster</h1>
-        <p className="text-sm text-muted">Inactive players are hidden from new lineups.</p>
+        <p className="text-sm text-muted">Tap a photo to change it. Inactive players are hidden from new lineups.</p>
       </div>
       <RosterForm players={players} />
     </div>

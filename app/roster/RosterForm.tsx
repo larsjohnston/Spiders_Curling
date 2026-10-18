@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { saveRoster } from "../actions";
 import type { Player } from "@/lib/types";
 import FormMessage from "@/components/FormMessage";
+import PhotoPicker from "./PhotoPicker";
 
 export default function RosterForm({ players }: { players: Player[] }) {
   const [state, action, pending] = useActionState(saveRoster, {});
@@ -11,6 +12,7 @@ export default function RosterForm({ players }: { players: Player[] }) {
     <form action={action} className="space-y-3">
       {players.map((p) => (
         <div key={p.id} className="flex items-center gap-3">
+          <PhotoPicker player={p} />
           <input type="hidden" name="id" value={p.id} />
           <input name={`name_${p.id}`} defaultValue={p.name} className="input" aria-label="Name" />
           <label className="flex shrink-0 items-center gap-1.5 text-sm text-muted">

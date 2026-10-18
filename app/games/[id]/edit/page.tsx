@@ -24,6 +24,7 @@ export default async function EditGamePage({ params }: PageProps<"/games/[id]/ed
           sheet: game.sheet ?? "",
           notes: game.notes ?? "",
           lineup: Object.fromEntries(game.lineup.map((s) => [s.position, s.player.id])),
+          away: game.away,
         }}
       />
     </div>

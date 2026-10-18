@@ -4,20 +4,21 @@ import type { Game, LineupSpot, Player } from "./types";
 import { T, type Position } from "./config";
 
 const GAME_SELECT =
-  "id, starts_at, opponent, sheet, notes, our_score, their_score, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active))";
+  "id, starts_at, opponent, sheet, notes, our_score, their_score, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
 
 type GameRow = Omit<Game, "lineup"> & {
   curling_game_players: { position: Position; curling_players: Player }[];
+  curling_away: { player_id: string }[];
 };
 
 function toGame(row: GameRow): Game {
-  const { curling_game_players, ...rest } = row;
+  const { curling_game_players, curling_away, ...rest } = row;
   const lineup: LineupSpot[] = curling_game_players.map((gp) => ({ position: gp.position, player: gp.curling_players }));
-  return { ...rest, lineup };
+  return { ...rest, lineup, away: curling_away.map((a) => a.player_id) };
 }
 
 export async function getPlayers(includeInactive = false): Promise<Player[]> {
-  let q = db().from(T.players).select("id, name, sort_order, active").order("sort_order").order("name");
+  let q = db().from(T.players).select("id, name, sort_order, active, photo_url").order("sort_order").order("name");
   if (!includeInactive) q = q.eq("active", true);
   const { data, error } = await q;
   if (error) throw error;
