@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { db } from "./db";
+import { T } from "./config";
 
 export type StoredSubscription = {
   id: string;
@@ -23,7 +24,7 @@ function configure() {
 }
 
 export async function getSubscriptions(): Promise<StoredSubscription[]> {
-  const { data, error } = await db().from("push_subscriptions").select("id, player_id, endpoint, p256dh, auth");
+  const { data, error } = await db().from(T.subscriptions).select("id, player_id, endpoint, p256dh, auth");
   if (error) throw error;
   return data;
 }
@@ -41,7 +42,7 @@ export async function sendPush(sub: StoredSubscription, payload: PushPayload): P
   } catch (err) {
     const status = (err as { statusCode?: number }).statusCode;
     if (status === 404 || status === 410) {
-      await db().from("push_subscriptions").delete().eq("id", sub.id);
+      await db().from(T.subscriptions).delete().eq("id", sub.id);
     } else {
       console.error("Push failed", status, err);
     }

@@ -17,3 +17,11 @@ export const POSITION_SHORT: Record<Position, string> = {
   second: "2",
   lead: "L",
 };
+
+// Tables are prefixed so the app can share a Supabase project with other apps.
+export const T = {
+  players: "curling_players",
+  games: "curling_games",
+  gamePlayers: "curling_game_players",
+  subscriptions: "curling_push_subscriptions",
+} as const;

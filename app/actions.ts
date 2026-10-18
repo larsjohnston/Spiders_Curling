@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { lock, requireUnlocked, unlock } from "@/lib/auth";
-import { POSITIONS, TIMEZONE } from "@/lib/config";
+import { POSITIONS, T, TIMEZONE } from "@/lib/config";
 import { localInputToDate } from "@/lib/time";
 import { getGame } from "@/lib/data";
 import { sendPush } from "@/lib/push";
@@ -65,21 +65,21 @@ export async function saveGame(_: FormState, form: FormData): Promise<FormState>
     // Moving the game re-arms its day-before reminder.
     const moved = new Date(existing.starts_at).getTime() !== startsAt.getTime();
     const { error } = await db()
-      .from("games")
+      .from(T.games)
       .update(moved ? { ...fields, reminder_sent_at: null } : fields)
       .eq("id", id);
     if (error) return { error: error.message };
-    const del = await db().from("game_players").delete().eq("game_id", id);
+    const del = await db().from(T.gamePlayers).delete().eq("game_id", id);
     if (del.error) return { error: del.error.message };
   } else {
-    const { data, error } = await db().from("games").insert(fields).select("id").single();
+    const { data, error } = await db().from(T.games).insert(fields).select("id").single();
     if (error) return { error: error.message };
     gameId = data.id;
   }
 
   if (lineup.length) {
     const { error } = await db()
-      .from("game_players")
+      .from(T.gamePlayers)
       .insert(lineup.map((s) => ({ ...s, game_id: gameId })));
     if (error) return { error: error.message };
   }
@@ -90,7 +90,7 @@ export async function saveGame(_: FormState, form: FormData): Promise<FormState>
 
 export async function deleteGame(id: string): Promise<void> {
   await requireUnlocked();
-  const { error } = await db().from("games").delete().eq("id", id);
+  const { error } = await db().from(T.games).delete().eq("id", id);
   if (error) throw error;
   revalidatePath("/");
   redirect("/");
@@ -109,7 +109,7 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
   }
   if ((our === null) !== (their === null)) return { error: "Enter both scores (or clear both)" };
 
-  const { error } = await db().from("games").update({ our_score: our, their_score: their }).eq("id", id);
+  const { error } = await db().from(T.games).update({ our_score: our, their_score: their }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/");
   redirect("/");
@@ -122,14 +122,14 @@ export async function saveRoster(_: FormState, form: FormData): Promise<FormStat
     const name = str(form, `name_${id}`);
     if (!name) return { error: "Names can't be blank" };
     const { error } = await db()
-      .from("players")
+      .from(T.players)
       .update({ name, active: form.get(`active_${id}`) === "on", sort_order: i + 1 })
       .eq("id", id);
     if (error) return { error: error.message };
   }
   const newName = str(form, "new_name");
   if (newName) {
-    const { error } = await db().from("players").insert({ name: newName, sort_order: ids.length + 1 });
+    const { error } = await db().from(T.players).insert({ name: newName, sort_order: ids.length + 1 });
     if (error) return { error: error.message };
   }
   revalidatePath("/", "layout");
@@ -141,7 +141,7 @@ type SubscriptionJSON = { endpoint: string; keys: { p256dh: string; auth: string
 export async function subscribe(sub: SubscriptionJSON, playerId: string | null): Promise<FormState> {
   if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) return { error: "Invalid subscription" };
   const { error } = await db()
-    .from("push_subscriptions")
+    .from(T.subscriptions)
     .upsert(
       { endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth, player_id: playerId || null },
       { onConflict: "endpoint" },
@@ -150,13 +150,13 @@ export async function subscribe(sub: SubscriptionJSON, playerId: string | null):
 }
 
 export async function unsubscribe(endpoint: string): Promise<void> {
-  await db().from("push_subscriptions").delete().eq("endpoint", endpoint);
+  await db().from(T.subscriptions).delete().eq("endpoint", endpoint);
 }
 
 /** Sends a test push to just this device. */
 export async function sendTest(endpoint: string): Promise<FormState> {
   const { data: sub, error } = await db()
-    .from("push_subscriptions")
+    .from(T.subscriptions)
     .select("id, player_id, endpoint, p256dh, auth")
     .eq("endpoint", endpoint)
     .maybeSingle();

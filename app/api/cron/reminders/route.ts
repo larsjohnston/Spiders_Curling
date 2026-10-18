@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { T } from "@/lib/config";
 import { getUpcomingUnreminded } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
 import { gamesDueForReminder, reminderMessage } from "@/lib/reminder";
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
       subs.map((sub) => sendPush(sub, { ...reminderMessage(game, sub.player_id), url: "/" })),
     );
     sent += results.filter(Boolean).length;
-    await db().from("games").update({ reminder_sent_at: now.toISOString() }).eq("id", game.id);
+    await db().from(T.games).update({ reminder_sent_at: now.toISOString() }).eq("id", game.id);
   }
   return NextResponse.json({ games: due.length, sent });
 }
