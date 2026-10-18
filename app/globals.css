@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --ice: #f4f7fb;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --navy: #0f1f3d;
+  --red: #dc2626;
+  --blue: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ice: #0b1220;
+    --card: #131c2e;
+    --ink: #e5e7eb;
+    --muted: #94a3b8;
+    --line: #23304a;
+  }
+}
+
+@theme inline {
+  --color-ice: var(--ice);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-navy: var(--navy);
+  --color-stone-red: var(--red);
+  --color-stone-blue: var(--blue);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--ice);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.input {
+  @apply w-full rounded-lg border border-line bg-card px-3 py-2.5 text-base text-ink outline-none focus:border-stone-blue;
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg bg-navy px-4 py-2.5 font-semibold text-white disabled:opacity-50 dark:bg-stone-blue;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-lg border border-line px-4 py-2.5 font-semibold text-ink;
+}
+.label {
+  @apply mb-1 block text-sm font-medium text-muted;
+}
