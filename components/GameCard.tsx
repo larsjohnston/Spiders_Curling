@@ -34,28 +34,34 @@ export default function GameCard({
           <div className="truncate text-lg font-semibold">vs {game.opponent}</div>
           {game.notes && <p className="mt-1 text-sm text-muted">{game.notes}</p>}
         </div>
-        {result ? (
-          <div className="shrink-0 text-center leading-none">
-            <div className={`text-5xl font-black ${RESULT_STYLE[result]}`}>{result}</div>
-            <div className="mt-1 text-sm font-semibold tabular-nums text-muted">
-              {game.our_score}–{game.their_score}
+        <div className="flex shrink-0 items-start gap-2">
+          {result ? (
+            <div className="text-center leading-none">
+              <div className={`text-5xl font-black ${RESULT_STYLE[result]}`}>{result}</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-muted">
+                {game.our_score}–{game.their_score}
+              </div>
             </div>
-          </div>
-        ) : next ? (
-          <span className="rounded-full bg-stone-blue px-2 py-0.5 text-xs font-semibold text-white">Next</span>
-        ) : null}
-      </div>
-      <GameLineup game={game} players={players} canMarkAway={!started} />
-      {unlocked && (
-        <div className="mt-3 flex gap-2 text-sm">
-          <Link href={`/games/${game.id}/edit`} className="btn-ghost py-1.5">
-            Edit
-          </Link>
-          {started && (
-            <Link href={`/games/${game.id}/score`} className={result ? "btn-ghost py-1.5" : "btn py-1.5"}>
-              {result ? "Change score" : "Enter score"}
+          ) : next ? (
+            <span className="rounded-full bg-stone-blue px-2 py-0.5 text-xs font-semibold text-white">Next</span>
+          ) : null}
+          {unlocked && (
+            <Link
+              href={`/games/${game.id}/edit`}
+              aria-label="Edit game"
+              className="-mt-1 -mr-1 flex h-8 w-8 items-center justify-center rounded-full text-lg text-muted"
+            >
+              ✎
             </Link>
           )}
+        </div>
+      </div>
+      <GameLineup game={game} players={players} canMarkAway={!started} />
+      {unlocked && started && (
+        <div className="mt-3 text-sm">
+          <Link href={`/games/${game.id}/score`} className={result ? "btn-ghost py-1.5" : "btn py-1.5"}>
+            {result ? "Change score" : "Enter score"}
+          </Link>
         </div>
       )}
     </article>

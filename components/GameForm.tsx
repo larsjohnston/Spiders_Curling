@@ -66,7 +66,12 @@ export default function GameForm({ players, initial }: { players: Player[]; init
             <li key={p.id} className="flex items-center gap-3 px-3 py-2">
               <input type="hidden" name={`status_${p.id}`} value={status[p.id]} />
               <Avatar player={p} size="sm" away={status[p.id] === "away"} />
-              <span className="flex-1 truncate font-medium">{p.name}</span>
+              <span className="min-w-0 flex-1 font-medium">
+                {p.name}
+                {status[p.id] === "away" && (
+                  <span className="ml-1 text-xs font-normal text-stone-red">(unavailable)</span>
+                )}
+              </span>
               <div className="flex gap-1" role="radiogroup" aria-label={p.name}>
                 {STATUSES.map((s) => {
                   const on = status[p.id] === s.value;

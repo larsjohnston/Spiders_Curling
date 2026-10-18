@@ -39,7 +39,10 @@ export default function GameLineup({
               {spots.map((s) => (
                 <li key={s.position} className="flex items-center gap-2">
                   <Avatar player={s.player} size="md" away={away.has(s.player.id)} highlight={s.player.id === me} />
-                  <span className="truncate font-medium">{s.player.name}</span>
+                  <span className="min-w-0 font-medium">
+                    {s.player.name}
+                    {away.has(s.player.id) && <Unavailable />}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -53,7 +56,10 @@ export default function GameLineup({
             {subs.map((p) => (
               <li key={p.id} className="flex items-center gap-2">
                 <Avatar player={p} size="sm" away={away.has(p.id)} highlight={p.id === me} />
-                <span className={`truncate text-sm ${away.has(p.id) ? "text-muted line-through" : ""}`}>{p.name}</span>
+                <span className={`min-w-0 text-sm ${away.has(p.id) ? "text-muted" : ""}`}>
+                  {p.name}
+                  {away.has(p.id) && <Unavailable />}
+                </span>
               </li>
             ))}
           </ul>
@@ -74,4 +80,8 @@ export default function GameLineup({
       )}
     </div>
   );
+}
+
+function Unavailable() {
+  return <span className="block text-xs font-normal text-stone-red">(unavailable)</span>;
 }
