@@ -32,6 +32,10 @@ export default function Avatar({
         <img
           src={player.photo_url}
           alt={player.name}
+          width={320}
+          height={320}
+          loading="lazy"
+          decoding="async"
           className={`h-full w-full rounded-full object-cover ${ring} ${away ? "opacity-40 grayscale" : ""}`}
         />
       ) : (

@@ -318,7 +318,8 @@ export async function uploadPhoto(form: FormData): Promise<FormState> {
   // New name each time so phones don't keep showing a cached old photo.
   const path = `${id}/${Date.now()}.jpg`;
   const storage = db().storage.from(PHOTO_BUCKET);
-  const { error } = await storage.upload(path, file, { contentType: "image/jpeg" });
+  // The path is unique per upload, so phones can keep the photo for a year without ever seeing a stale one.
+  const { error } = await storage.upload(path, file, { contentType: "image/jpeg", cacheControl: "31536000" });
   if (error) return { error: error.message };
 
   const { data: old } = await db().from(T.players).select("photo_url").eq("id", id).single();

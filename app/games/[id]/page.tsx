@@ -7,13 +7,13 @@ import { isUnlocked } from "@/lib/auth";
 
 export default async function GamePage({ params }: PageProps<"/games/[id]">) {
   const { id } = await params;
-  const [game, players, unlocked, league] = await Promise.all([
+  const [game, players, unlocked, league, config] = await Promise.all([
     getGame(id),
     getPlayers(),
     isUnlocked(),
     getLeagueSnapshot(),
+    getLeagueConfig(),
   ]);
-  const config = await getLeagueConfig();
   if (!game) notFound();
   // Server component rendered once per request, so reading the clock here is safe.
   // eslint-disable-next-line react-hooks/purity

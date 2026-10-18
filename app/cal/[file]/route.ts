@@ -14,7 +14,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/cal/[file]">
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": `inline; filename="${playerId ? "spiders-me" : "spiders"}.ics"`,
-      "Cache-Control": "public, max-age=900",
+      // Calendar apps poll this; let Vercel's edge serve it for 15 min and refresh in the background.
+      "Cache-Control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600",
     },
   });
 }

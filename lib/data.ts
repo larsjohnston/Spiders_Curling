@@ -20,49 +20,62 @@ function toGame(row: GameRow): Game {
   return { ...rest, lineup, away: curling_away.map((a) => a.player_id), excuses };
 }
 
-/** Which league sheet and season the app is following (set on the Season page). Cached per request. */
-export const getLeagueConfig = cache(async (): Promise<LeagueConfig> => {
-  const { data, error } = await db().from(T.league).select("data").eq("key", "config").maybeSingle();
+// Every read below is wrapped in React's cache(), so the layout and the page (and anything else in
+// the same request) share one database round trip per query instead of repeating it.
+
+/** The two league rows (config + last sync snapshot) in one query; most pages need both. */
+const getLeagueRows = cache(async (): Promise<Record<string, unknown>> => {
+  const { data, error } = await db().from(T.league).select("key, data").in("key", ["config", "snapshot"]);
   if (error) throw error;
-  return { ...DEFAULT_LEAGUE, ...((data?.data as Partial<LeagueConfig>) ?? {}) };
+  return Object.fromEntries(data.map((r) => [r.key, r.data]));
 });
 
-export async function getPlayers(includeInactive = false): Promise<Player[]> {
+/** Which league sheet and season the app is following (set on the Season page). */
+export async function getLeagueConfig(): Promise<LeagueConfig> {
+  const rows = await getLeagueRows();
+  return { ...DEFAULT_LEAGUE, ...((rows.config as Partial<LeagueConfig> | undefined) ?? {}) };
+}
+
+/** Active players only unless asked; callers pass exactly `true` or nothing so the cache key is stable. */
+export const getPlayers = cache(async (includeInactive?: true): Promise<Player[]> => {
   let q = db().from(T.players).select("id, name, sort_order, active, photo_url").order("sort_order").order("name");
   if (!includeInactive) q = q.eq("active", true);
   const { data, error } = await q;
   if (error) throw error;
   return data;
-}
+});
+
+/**
+ * Every game the team has ever played, in one query. The table is tiny (one row a week), so one
+ * round trip for all seasons beats a round trip to look up the season and then another for its games.
+ */
+const getAllGames = cache(async (): Promise<Game[]> => {
+  const { data, error } = await db().from(T.games).select(GAME_SELECT).order("starts_at");
+  if (error) throw error;
+  return (data as unknown as GameRow[]).map(toGame);
+});
 
 /** This season's games (or another season's, by name). */
 export async function getGames(season?: string): Promise<Game[]> {
-  const s = season ?? (await getLeagueConfig()).season;
-  const { data, error } = await db().from(T.games).select(GAME_SELECT).eq("season", s).order("starts_at");
-  if (error) throw error;
-  return (data as unknown as GameRow[]).map(toGame);
+  const [games, s] = await Promise.all([getAllGames(), season ?? getLeagueConfig().then((c) => c.season)]);
+  return games.filter((g) => g.season === s);
 }
 
 /** Record for every season, newest first, for the season history list. */
 export async function getSeasonRecords(): Promise<{ season: string; games: Pick<Game, "our_score" | "their_score" | "league_result" | "jugs">[] }[]> {
-  const { data, error } = await db()
-    .from(T.games)
-    .select("season, starts_at, our_score, their_score, league_result, jugs")
-    .order("starts_at", { ascending: false });
-  if (error) throw error;
-  const bySeason = new Map<string, Pick<Game, "our_score" | "their_score" | "league_result" | "jugs">[]>();
-  for (const g of data) {
+  const bySeason = new Map<string, Game[]>();
+  for (const g of [...(await getAllGames())].reverse()) {
     if (!bySeason.has(g.season)) bySeason.set(g.season, []);
     bySeason.get(g.season)!.push(g);
   }
   return [...bySeason].map(([season, games]) => ({ season, games }));
 }
 
-export async function getGame(id: string): Promise<Game | null> {
+export const getGame = cache(async (id: string): Promise<Game | null> => {
   const { data, error } = await db().from(T.games).select(GAME_SELECT).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? toGame(data as unknown as GameRow) : null;
-}
+});
 
 export type LeagueSnapshot = {
   asOf: string | null;
@@ -78,9 +91,7 @@ export type LeagueSnapshot = {
 
 /** Last league sync (standings, byes), or null before the first sync. */
 export async function getLeagueSnapshot(): Promise<LeagueSnapshot | null> {
-  const { data, error } = await db().from(T.league).select("data").eq("key", "snapshot").maybeSingle();
-  if (error) throw error;
-  return (data?.data as LeagueSnapshot) ?? null;
+  return ((await getLeagueRows()).snapshot as LeagueSnapshot | undefined) ?? null;
 }
 
 /** A team's league record as "W–L" (plus "–T" when they have ties), or null if they're not in the standings. */
