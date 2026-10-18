@@ -43,6 +43,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <MeLink players={players.map(({ id, name }) => ({ id, name }))} />
               {unlocked ? (
                 <>
+                  <Link
+                    href="/games/new"
+                    aria-label="Add game"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xl leading-none text-white"
+                  >
+                    +
+                  </Link>
                   <Link href="/roster">Roster</Link>
                   <form action={lockAction}>
                     <button className="text-white/60">Lock</button>
