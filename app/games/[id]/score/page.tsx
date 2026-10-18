@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import BackLink from "@/components/BackLink";
 import ScoreForm from "./ScoreForm";
 import GameLineup from "@/components/GameLineup";
 import { getGame, getPlayers } from "@/lib/data";
@@ -13,6 +14,7 @@ export default async function ScorePage({ params }: PageProps<"/games/[id]/score
   const start = new Date(game.starts_at);
   return (
     <div className="space-y-4">
+      <BackLink fallback={`/games/${game.id}`} />
       <div>
         <h1 className="text-xl font-bold">Score vs {game.opponent}</h1>
         <p className="text-sm text-muted">

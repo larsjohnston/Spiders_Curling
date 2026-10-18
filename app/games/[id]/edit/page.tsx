@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import BackLink from "@/components/BackLink";
 import GameForm from "@/components/GameForm";
 import { getGame, getPlayers } from "@/lib/data";
 import { unlockedOrRedirect } from "@/lib/guard";
@@ -15,6 +16,7 @@ export default async function EditGamePage({ params }: PageProps<"/games/[id]/ed
   const options = players.filter((p) => p.active || game.lineup.some((s) => s.player.id === p.id));
   return (
     <div className="space-y-4">
+      <BackLink fallback={`/games/${game.id}`} />
       <h1 className="text-xl font-bold">Edit game</h1>
       <GameForm
         players={options}

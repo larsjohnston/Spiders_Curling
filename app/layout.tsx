@@ -4,6 +4,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
 import HeaderNav from "@/components/HeaderNav";
+import { NavTracker } from "@/components/BackLink";
 import PushBanner from "@/components/PushBanner";
 import Welcome from "@/components/Welcome";
 import { getPlayers } from "@/lib/data";
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
         <ServiceWorker />
+        <NavTracker />
         <header className="bg-navy pt-[env(safe-area-inset-top)] text-white">
           <div className="mx-auto flex max-w-xl items-center gap-2 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold">
