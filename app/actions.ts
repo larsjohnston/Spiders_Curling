@@ -157,9 +157,10 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
 export async function saveRoster(_: FormState, form: FormData): Promise<FormState> {
   await requireUnlocked();
   const ids = form.getAll("id").map(String);
+  // Check everything before writing anything, so an error never leaves half the roster saved.
+  if (ids.some((id) => !str(form, `name_${id}`))) return { error: "Names can't be blank" };
   for (const [i, id] of ids.entries()) {
     const name = str(form, `name_${id}`);
-    if (!name) return { error: "Names can't be blank" };
     const { error } = await db()
       .from(T.players)
       .update({ name, active: form.get(`active_${id}`) === "on", sort_order: i + 1 })

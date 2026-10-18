@@ -4,6 +4,7 @@ import { formatDay, formatTime } from "@/lib/time";
 import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game, type Player } from "@/lib/types";
 import GameLineup from "./GameLineup";
 import BeerBadge from "./BeerBadge";
+import ScoutingButton from "./ScoutingButton";
 
 export const RESULT_STYLE = { W: "text-green-600", L: "text-stone-red", T: "text-muted" } as const;
 
@@ -48,16 +49,12 @@ export default function GameCard({
             {formatDay(start, TIMEZONE)} · {formatTime(start, TIMEZONE)}
             {game.sheet && ` · Sheet ${game.sheet}`}
           </div>
-          <div className="truncate text-lg font-semibold">
+          <div className="text-lg font-semibold">
             vs {game.opponent}
             {opponentRecord && <span className="ml-1.5 text-base font-medium text-muted tabular-nums">({opponentRecord})</span>}
+            {scouting && !started && <ScoutingButton report={scouting} />}
           </div>
           {game.notes && <p className="mt-1 text-sm text-muted">{game.notes}</p>}
-          {scouting && !started && (
-            <p className="mt-1.5 text-sm text-muted">
-              <span className="font-semibold text-ink">🔎 Scouting:</span> {scouting}
-            </p>
-          )}
         </div>
         <div className="flex shrink-0 items-start gap-2">
           {result ? (
