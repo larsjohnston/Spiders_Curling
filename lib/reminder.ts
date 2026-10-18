@@ -26,10 +26,11 @@ function playingNames(game: Pick<Game, "lineup">, except?: string): string[] {
     .map((s) => s.player.name);
 }
 
-/** Night-before reminder for one of the players in the lineup. */
+/** Night-before reminder for one of the players in the lineup. `opponentRecord` is e.g. "2–1". */
 export function reminderMessage(
   game: Pick<Game, "starts_at" | "opponent" | "sheet" | "lineup">,
   playerId: string,
+  opponentRecord?: string | null,
 ): PushText {
   const time = formatTime(new Date(game.starts_at), TIMEZONE);
   const teammates = playingNames(game, playerId);
@@ -37,7 +38,8 @@ export function reminderMessage(
     game.sheet ? `Sheet ${game.sheet}` : null,
     teammates.length ? `Playing with ${teammates.join(", ")}` : null,
   ].filter(Boolean);
-  return { title: `Tomorrow ${time} vs ${game.opponent}`, body: parts.join(" · ") };
+  const record = opponentRecord ? ` (${opponentRecord})` : "";
+  return { title: `Tomorrow ${time} vs ${game.opponent}${record}`, body: parts.join(" · ") };
 }
 
 const STORY_PUSH_LIMIT = 180;

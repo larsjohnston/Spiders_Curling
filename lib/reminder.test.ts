@@ -78,6 +78,10 @@ describe("reminderMessage", () => {
       body: "Sheet 3 · Playing with Dave, Mike, Rob",
     });
   });
+
+  it("adds the opponent's league record when known", () => {
+    expect(reminderMessage(g, "t", "1–1–1").title).toBe("Tomorrow 7:00pm vs Smith (1–1–1)");
+  });
 });
 
 describe("resultMessage", () => {
