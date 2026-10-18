@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { deleteGame, saveGame } from "@/app/actions";
-import { POSITIONS, POSITION_LABEL } from "@/lib/config";
+import { POSITIONS } from "@/lib/config";
 import type { Player } from "@/lib/types";
 import FormMessage from "./FormMessage";
 
@@ -49,9 +49,9 @@ export default function GameForm({ players, initial }: { players: Player[]; init
 
       <fieldset className="space-y-2">
         <legend className="label">Who&apos;s playing</legend>
-        {POSITIONS.map((pos) => (
+        {POSITIONS.map((pos, i) => (
           <div key={pos} className="flex items-center gap-3">
-            <span className="w-16 text-sm font-medium">{POSITION_LABEL[pos]}</span>
+            <span className="w-6 text-sm font-medium text-muted">{i + 1}</span>
             <select name={`pos_${pos}`} defaultValue={initial.lineup[pos] ?? ""} className="input">
               <option value="">—</option>
               {players.map((p) => (

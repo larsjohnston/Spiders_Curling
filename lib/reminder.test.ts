@@ -61,10 +61,10 @@ describe("reminderMessage", () => {
     ],
   };
 
-  it("lists the lineup skip-first with the opponent and sheet", () => {
+  it("lists who's playing with the opponent and sheet", () => {
     expect(reminderMessage(g, null)).toEqual({
       title: "Game tomorrow 7:00pm vs Smith",
-      body: "7:00pm vs Smith — Sheet 3. Playing: Dave (S), Mike (V), Tom (2), Rob (L)",
+      body: "7:00pm vs Smith — Sheet 3. Playing: Dave, Mike, Tom, Rob",
     });
   });
 

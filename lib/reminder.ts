@@ -1,4 +1,4 @@
-import { POSITIONS, POSITION_SHORT, TIMEZONE } from "./config";
+import { POSITIONS, TIMEZONE } from "./config";
 import { formatTime, localDateKey, tomorrowKey } from "./time";
 import type { Game } from "./types";
 
@@ -18,7 +18,7 @@ export function lineupText(game: Pick<Game, "lineup">): string {
     (a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position),
   );
   if (spots.length === 0) return "Lineup not set";
-  return spots.map((s) => `${s.player.name} (${POSITION_SHORT[s.position]})`).join(", ");
+  return spots.map((s) => s.player.name).join(", ");
 }
 
 /** Notification for one recipient; `playerId` personalizes the title when known. */

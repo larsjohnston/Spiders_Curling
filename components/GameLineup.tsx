@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { setAway } from "@/app/actions";
-import { POSITIONS, POSITION_LABEL } from "@/lib/config";
+import { POSITIONS } from "@/lib/config";
 import type { Game, Player } from "@/lib/types";
 import Avatar from "./Avatar";
 import { useMe } from "./useMe";
@@ -34,7 +34,6 @@ export default function GameLineup({
             <li key={s.position} className="flex flex-col items-center text-center">
               <Avatar player={s.player} size="md" away={away.has(s.player.id)} highlight={s.player.id === me} />
               <span className="mt-1 w-full truncate text-sm font-medium">{s.player.name}</span>
-              <span className="text-[11px] uppercase tracking-wide text-muted">{POSITION_LABEL[s.position]}</span>
             </li>
           ))}
         </ul>
