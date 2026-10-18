@@ -334,6 +334,24 @@ export async function uploadPhoto(form: FormData): Promise<FormState> {
   return { ok: "Photo saved" };
 }
 
+/** Delete an inactive player who never played a game (an entry mistake), along with their photo. */
+export async function removePlayer(id: string): Promise<FormState> {
+  await requireUnlocked();
+  const { data: player, error } = await db().from(T.players).select("id, name, active, photo_url").eq("id", id).maybeSingle();
+  if (error) return { error: error.message };
+  if (!player) return { error: "Player not found" };
+  if (player.active) return { error: "Untick Active and save first" };
+  const { count } = await db().from(T.gamePlayers).select("game_id", { count: "exact", head: true }).eq("player_id", id);
+  if (count) return { error: `${player.name} has played ${count} game${count === 1 ? "" : "s"}; keep them inactive instead` };
+
+  const del = await db().from(T.players).delete().eq("id", id);
+  if (del.error) return { error: del.error.message };
+  const oldPath = player.photo_url?.split(`/${PHOTO_BUCKET}/`)[1];
+  if (oldPath) await db().storage.from(PHOTO_BUCKET).remove([oldPath]);
+  revalidatePath("/", "layout");
+  return { ok: `${player.name} removed` };
+}
+
 type SubscriptionJSON = { endpoint: string; keys: { p256dh: string; auth: string } };
 
 export async function subscribe(sub: SubscriptionJSON, playerId: string | null): Promise<FormState> {
