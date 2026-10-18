@@ -72,6 +72,9 @@ export default function HeaderNav({ players, unlocked }: { players: Pick<Player,
                 <span className="font-semibold">Me · notifications</span>
               )}
             </Link>
+            <Link href="/google-sheet" className={item}>
+              Google Sheet
+            </Link>
             <div className="border-t border-line" />
             {unlocked ? (
               <>
