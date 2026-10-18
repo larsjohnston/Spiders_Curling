@@ -1,7 +1,8 @@
 import "server-only";
 import { T, type LeagueConfig } from "./config";
 import { db } from "./db";
-import { getGames, getLeagueConfig, type LeagueSnapshot } from "./data";
+import { getGames, getLeagueConfig, getLeagueSnapshot, type LeagueSnapshot } from "./data";
+import { standingsMessage } from "./standings";
 import { guessTabs, parseDivision, parseSchedule, parseTabs, parseWeeks, tabUrl, type LeagueGame } from "./league";
 import { planSync } from "./leagueSync";
 import { getSubscriptions, sendPush } from "./push";
@@ -54,6 +55,8 @@ export async function syncLeague(
     if (error) throw error;
   }
 
+  // Read the standings as they were before this sync so we can tell the team if our place changed.
+  const previous = await getLeagueSnapshot();
   const snapshot: LeagueSnapshot = {
     asOf: division.asOf,
     syncedAt: now.toISOString(),
@@ -72,9 +75,12 @@ export async function syncLeague(
     .upsert({ key: "snapshot", data: snapshot, updated_at: now.toISOString() }, { onConflict: "key" });
   if (error) throw error;
 
-  if (plan.pushes.length) {
+  const moved = standingsMessage(previous?.standings, snapshot.standings, config.team, config.division);
+  const pushes = moved ? [...plan.pushes, { ...moved, url: "/league" }] : plan.pushes;
+  if (moved) plan.log.push(`Standings: ${moved.title}`);
+  if (pushes.length) {
     const subs = await getSubscriptions();
-    for (const message of plan.pushes) await Promise.all(subs.map((sub) => sendPush(sub, message)));
+    for (const message of pushes) await Promise.all(subs.map((sub) => sendPush(sub, message)));
   }
   return plan.log;
 }

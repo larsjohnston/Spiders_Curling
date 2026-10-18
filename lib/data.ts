@@ -94,6 +94,13 @@ export async function getLeagueSnapshot(): Promise<LeagueSnapshot | null> {
   return ((await getLeagueRows()).snapshot as LeagueSnapshot | undefined) ?? null;
 }
 
+/** Same, but straight from the database: for code that runs after a sync in the same request. */
+export async function getLeagueSnapshotFresh(): Promise<LeagueSnapshot | null> {
+  const { data, error } = await db().from(T.league).select("data").eq("key", "snapshot").maybeSingle();
+  if (error) throw error;
+  return (data?.data as LeagueSnapshot | undefined) ?? null;
+}
+
 /** A team's league record as "W–L" (plus "–T" when they have ties), or null if they're not in the standings. */
 export function leagueRecord(league: LeagueSnapshot | null, team: string): string | null {
   const t = league?.standings.find((s) => s.team === team);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { T } from "@/lib/config";
-import { getLeagueSnapshot, getUpcomingUnreminded, leagueRecord } from "@/lib/data";
+import { getLeagueSnapshotFresh, getUpcomingUnreminded, leagueRecord } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
 import { gamesDueForReminder, reminderMessage } from "@/lib/reminder";
 import { syncLeague } from "@/lib/leagueRun";
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const due = gamesDueForReminder(await getUpcomingUnreminded(now), now).filter((g) => g.lineup.length > 0);
   if (due.length === 0) return NextResponse.json({ games: 0, sent: 0, league });
 
-  const [subs, snapshot] = await Promise.all([getSubscriptions(), getLeagueSnapshot()]);
+  const [subs, snapshot] = await Promise.all([getSubscriptions(), getLeagueSnapshotFresh()]);
   let sent = 0;
   for (const game of due) {
     const playing = new Set(game.lineup.map((s) => s.player.id));

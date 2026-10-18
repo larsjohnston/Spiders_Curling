@@ -7,6 +7,10 @@ notification the evening before every game with the opponent and the four playin
 - **Editing** (games, lineups, scores, roster) needs the shared team PIN.
 - **Reminders** go out daily at 00:00 UTC (6pm MDT / 5pm MST) for games on the next
   calendar day in Calgary time. Each person's push says whether they're playing or sitting out.
+- **Standings moves**: when the hourly league sync sees the team change place in the division,
+  everyone gets a push saying who was passed (or who got by).
+- **Works offline**: the service worker keeps the last copy of every page you've opened, so the
+  schedule still opens at a rink with no signal (a grey banner says it's the last saved copy).
 
 ## For the guys: install on iPhone
 
