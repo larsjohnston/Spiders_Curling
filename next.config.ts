@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
     return [
       {
         // App icons: named files that never change in place, so let phones keep them.
-        source: "/:file(icon-192.png|icon-512.png|icon-maskable-512.png|apple-touch-icon.png)",
+        source: "/:file(icon-192.png|icon-512.png|icon-maskable-512.png|apple-touch-icon.png|logo-128.png)",
         headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
       },
       {

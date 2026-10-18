@@ -36,11 +36,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <header className="bg-navy pt-[env(safe-area-inset-top)] text-white">
           <div className="mx-auto flex max-w-xl items-center gap-2 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold">
-              <span aria-hidden className="relative inline-block h-6 w-6 rounded-full bg-stone-blue">
-                <span className="absolute inset-[3px] rounded-full bg-white" />
-                <span className="absolute inset-[6px] rounded-full bg-stone-red" />
-                <span className="absolute inset-[9px] rounded-full bg-white" />
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element -- tiny static logo, no optimizer needed */}
+              <img src="/logo-128.png" alt="" width={36} height={36} className="h-9 w-9 rounded-full bg-white" />
               {TEAM_NAME}
             </Link>
             <HeaderNav players={players.map(({ id, name }) => ({ id, name }))} unlocked={unlocked} />
