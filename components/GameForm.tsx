@@ -5,6 +5,7 @@ import { deleteGame, saveGame } from "@/app/actions";
 import { POSITIONS } from "@/lib/config";
 import type { Player, PlayerStatus } from "@/lib/types";
 import Avatar from "./Avatar";
+import { submitWithoutReset } from "@/components/submitWithoutReset";
 import FormMessage from "./FormMessage";
 
 const STATUSES: { value: PlayerStatus; symbol: string; label: string; on: string }[] = [
@@ -29,7 +30,7 @@ export default function GameForm({ players, initial }: { players: Player[]; init
   );
   const playingCount = Object.values(status).filter((s) => s === "play").length;
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
       <div>
         <label className="label" htmlFor="starts_at">

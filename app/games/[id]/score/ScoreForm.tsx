@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveScore } from "@/app/actions";
+import { submitWithoutReset } from "@/components/submitWithoutReset";
 import FormMessage from "@/components/FormMessage";
 
 const JUG_QUIPS = [
@@ -32,7 +33,7 @@ export default function ScoreForm({
   const quip = jugs === null ? "How many jugs did we put away?" : (JUG_QUIPS[jugs] ?? "🚨 Legendary. Hydrate.");
 
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
       <input type="hidden" name="id" value={id} />
       <div className="grid grid-cols-2 gap-3">
         <div>
