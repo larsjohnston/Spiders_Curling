@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
+import MeLink from "@/components/MeLink";
+import { getPlayers } from "@/lib/data";
 import { TEAM_NAME } from "@/lib/config";
 import { isUnlocked } from "@/lib/auth";
 import { lockAction } from "./actions";
@@ -22,7 +24,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const unlocked = await isUnlocked();
+  const [unlocked, players] = await Promise.all([isUnlocked(), getPlayers()]);
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
@@ -38,7 +40,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               {TEAM_NAME}
             </Link>
             <nav className="ml-auto flex items-center gap-4 text-sm font-medium text-white/80">
-              <Link href="/me">Me</Link>
+              <MeLink players={players.map(({ id, name }) => ({ id, name }))} />
               {unlocked ? (
                 <>
                   <Link href="/roster">Roster</Link>
