@@ -6,11 +6,13 @@ import { db } from "@/lib/db";
 import { lock, requireUnlocked, unlock } from "@/lib/auth";
 import { PHOTO_BUCKET, POSITIONS, T, TIMEZONE } from "@/lib/config";
 import { localInputToDate } from "@/lib/time";
-import { getGame, getPlayers } from "@/lib/data";
+import { getGame, getLeagueConfig, getPlayers } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
 import { availabilityMessage, resultMessage } from "@/lib/reminder";
+import { EXCUSE_MAX } from "@/lib/excuses";
 import { availableCount, resultOf, type PlayerStatus } from "@/lib/types";
-import { syncLeague } from "@/lib/leagueRun";
+import { previewSheet, syncLeague, type SheetPreview } from "@/lib/leagueRun";
+import { normalizeSheetUrl } from "@/lib/league";
 
 export type FormState = { error?: string; ok?: string };
 
@@ -124,6 +126,8 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
     if (v !== null && (!Number.isInteger(v) || v < 0 || v > 99)) return { error: "Scores must be whole numbers" };
   }
   if ((our === null) !== (their === null)) return { error: "Enter both scores (or clear both)" };
+  const jugs = parse(str(form, "jugs"));
+  if (jugs !== null && (!Number.isInteger(jugs) || jugs < 0 || jugs > 99)) return { error: "Jugs must be 0–99" };
 
   const before = await getGame(id);
   if (!before) return { error: "Game not found" };
@@ -135,12 +139,13 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
     return { error: `The league has this game as a ${word}. Check the score with the skip.` };
   }
 
-  const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story }).eq("id", id);
+  const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story, jugs }).eq("id", id);
   if (error) return { error: error.message };
 
+  // Topping up the jug count alone doesn't re-announce the result.
   const changed = before.our_score !== our || before.their_score !== their || (before.story ?? null) !== story;
   if (changed && our !== null && their !== null) {
-    const after = { ...before, our_score: our, their_score: their, story };
+    const after = { ...before, our_score: our, their_score: their, story, jugs };
     const message = { ...resultMessage(after), url: `/games/${id}` };
     await Promise.all((await getSubscriptions()).map((sub) => sendPush(sub, message)));
   }
@@ -170,6 +175,63 @@ export async function saveRoster(_: FormState, form: FormData): Promise<FormStat
   return { ok: "Roster saved" };
 }
 
+export type SeasonState = FormState & { preview?: SheetPreview };
+
+function seasonInput(form: FormData) {
+  return {
+    season: str(form, "season"),
+    sheetUrl: normalizeSheetUrl(str(form, "sheetUrl")),
+    team: str(form, "team"),
+    division: str(form, "division").toUpperCase(),
+    scheduleGid: str(form, "scheduleGid") || undefined,
+    divisionGid: str(form, "divisionGid") || undefined,
+  };
+}
+
+/** Season page, step 1: read a new league sheet and show what the app would pull from it. */
+export async function previewSeason(_: SeasonState, form: FormData): Promise<SeasonState> {
+  await requireUnlocked();
+  const input = seasonInput(form);
+  if (!input.sheetUrl) return { error: "Paste the league's published Google Sheet link (docs.google.com/spreadsheets/d/e/…)" };
+  if (!input.season || !input.team || !input.division) return { error: "Season name, team and division are required" };
+  try {
+    return { preview: await previewSheet({ ...input, sheetUrl: input.sheetUrl }) };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Season page, step 2: switch to the new sheet. Old games keep their season label (history stays),
+ * the roster and photos carry over, and the new schedule is pulled in right away.
+ */
+export async function startSeason(_: SeasonState, form: FormData): Promise<SeasonState> {
+  await requireUnlocked();
+  const input = seasonInput(form);
+  if (!input.sheetUrl) return { error: "Missing sheet link" };
+  const current = await getLeagueConfig();
+  if (input.season === current.season) return { error: `"${input.season}" is the current season. Give the new one a new name.` };
+  let preview: SheetPreview;
+  try {
+    preview = await previewSheet({ ...input, sheetUrl: input.sheetUrl });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+  const saved = await db()
+    .from(T.league)
+    .upsert({ key: "config", data: preview.config, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (saved.error) return { error: saved.error.message };
+  await db().from(T.league).delete().eq("key", "snapshot");
+  try {
+    const log = await syncLeague(new Date(), { config: preview.config });
+    revalidatePath("/", "layout");
+    return { ok: `${preview.config.season} started: ${log.filter((l) => l.startsWith("Added")).length} games added.` };
+  } catch (e) {
+    revalidatePath("/", "layout");
+    return { error: `Season saved, but the first sync failed: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
 /** Pull the league sheet now instead of waiting for the hourly job. */
 export async function syncLeagueNow(): Promise<FormState> {
   await requireUnlocked();
@@ -183,12 +245,20 @@ export async function syncLeagueNow(): Promise<FormState> {
 }
 
 /** A player marking themselves away (or back in) for one game. No PIN: it's their own availability. */
-export async function setAway(gameId: string, playerId: string, away: boolean): Promise<FormState> {
+export async function setAway(
+  gameId: string,
+  playerId: string,
+  away: boolean,
+  excuse?: string | null,
+): Promise<FormState> {
   const [game, players] = await Promise.all([getGame(gameId), getPlayers()]);
   if (!game) return { error: "Game not found" };
   if (game.away.includes(playerId) === away) return {}; // double tap: nothing changed, nothing to announce
+  const why = excuse?.trim().slice(0, EXCUSE_MAX) || null;
   const { error } = away
-    ? await db().from(T.away).upsert({ game_id: gameId, player_id: playerId }, { onConflict: "game_id,player_id" })
+    ? await db()
+        .from(T.away)
+        .upsert({ game_id: gameId, player_id: playerId, excuse: why }, { onConflict: "game_id,player_id" })
     : await db().from(T.away).delete().eq("game_id", gameId).eq("player_id", playerId);
   if (error) return { error: error.message };
 
@@ -197,7 +267,7 @@ export async function setAway(gameId: string, playerId: string, away: boolean): 
   if (player && game.lineup.length > 0 && new Date(game.starts_at).getTime() > Date.now()) {
     const after = { ...game, away: away ? [...game.away, playerId] : game.away.filter((id) => id !== playerId) };
     const message = {
-      ...availabilityMessage(game, player, away, availableCount(after, players), players.length),
+      ...availabilityMessage(game, player, away, availableCount(after, players), players.length, why),
       url: `/games/${gameId}`,
     };
     const others = (await getSubscriptions()).filter((sub) => sub.player_id !== playerId);

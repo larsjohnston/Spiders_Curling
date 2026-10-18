@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import GameCard from "@/components/GameCard";
-import { getGame, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/data";
+import { getGame, getLeagueConfig, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/data";
+import { scoutingReport } from "@/lib/scouting";
 import { isUnlocked } from "@/lib/auth";
 
 export default async function GamePage({ params }: PageProps<"/games/[id]">) {
@@ -12,6 +13,7 @@ export default async function GamePage({ params }: PageProps<"/games/[id]">) {
     isUnlocked(),
     getLeagueSnapshot(),
   ]);
+  const config = await getLeagueConfig();
   if (!game) notFound();
   // Server component rendered once per request, so reading the clock here is safe.
   // eslint-disable-next-line react-hooks/purity
@@ -27,6 +29,7 @@ export default async function GamePage({ params }: PageProps<"/games/[id]">) {
         unlocked={unlocked}
         now={now}
         opponentRecord={leagueRecord(league, game.opponent)}
+        scouting={scoutingReport(game.opponent, config.team, league)}
       />
     </div>
   );

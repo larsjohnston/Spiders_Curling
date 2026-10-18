@@ -72,6 +72,9 @@ export default function HeaderNav({ players, unlocked }: { players: Pick<Player,
                 <span className="font-semibold">Me · notifications</span>
               )}
             </Link>
+            <Link href="/calendar" className={item}>
+              📅 Calendar sync
+            </Link>
             <Link href="/google-sheet" className={item}>
               Google Sheet
             </Link>
@@ -86,6 +89,9 @@ export default function HeaderNav({ players, unlocked }: { players: Pick<Player,
                 </Link>
                 <Link href="/roster" className={item}>
                   Roster &amp; photos
+                </Link>
+                <Link href="/season" className={item}>
+                  Season
                 </Link>
                 <form action={lockAction} onSubmit={() => setOpen(false)}>
                   <button className={`${item} text-muted`}>Lock editing</button>

@@ -12,6 +12,7 @@ export type LineupSpot = { position: Position; player: Player };
 
 export type Game = {
   id: string;
+  season: string;
   starts_at: string;
   opponent: string;
   sheet: string | null;
@@ -20,12 +21,16 @@ export type Game = {
   their_score: number | null;
   /** Free-text recap entered with the score; pushed out with the result. */
   story: string | null;
+  /** Jugs of beer after the game. */
+  jugs: number | null;
   /** W/L/T as posted on the league sheet (the league doesn't publish scores). */
   league_result: Result | null;
   reminder_sent_at: string | null;
   lineup: LineupSpot[];
   /** Players who said they can't make it. */
   away: string[];
+  /** Their excuses, by player id. */
+  excuses: Record<string, string>;
 };
 
 /** Per-game status on the edit form: + playing, " available sub, − unavailable. */

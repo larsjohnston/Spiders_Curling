@@ -101,6 +101,12 @@ describe("availabilityMessage", () => {
     });
   });
 
+  it("leads with the excuse when there is one", () => {
+    expect(availabilityMessage(g, { id: "t", name: "Tup" }, true, 5, 6, "🐱 Wife said no. I'm a pussy.").body).toBe(
+      `"🐱 Wife said no. I'm a pussy." · 5 of 6 available`,
+    );
+  });
+
   it("keeps it short for a sub, and for coming back in", () => {
     expect(availabilityMessage(g, { id: "t", name: "Tup" }, true, 5, 6).body).toBe("5 of 6 available");
     expect(availabilityMessage(g, { id: "t", name: "Tup" }, false, 6, 6)).toEqual({
@@ -127,6 +133,11 @@ describe("resultMessage", () => {
       title: "Win 9–8 vs Patel, R.",
       body: "Stole one in the 8th.",
     });
+  });
+
+  it("brags about the jugs in the title", () => {
+    expect(resultMessage({ ...g, jugs: 3 }).title).toBe("Win 9–8 vs Patel, R. 🍺×3");
+    expect(resultMessage({ ...g, jugs: 0 }).title).toBe("Win 9–8 vs Patel, R.");
   });
 
   it("falls back to who played, and trims long stories", () => {

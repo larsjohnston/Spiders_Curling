@@ -1,22 +1,31 @@
 import "server-only";
+import { cache } from "react";
 import { db } from "./db";
 import type { Game, LineupSpot, Player, Result } from "./types";
 import type { LeagueWeek } from "./league";
-import { T, type Position } from "./config";
+import { DEFAULT_LEAGUE, T, type LeagueConfig, type Position } from "./config";
 
 const GAME_SELECT =
-  "id, starts_at, opponent, sheet, notes, our_score, their_score, story, league_result, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
+  "id, season, starts_at, opponent, sheet, notes, our_score, their_score, story, jugs, league_result, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id, excuse)";
 
-type GameRow = Omit<Game, "lineup"> & {
+type GameRow = Omit<Game, "lineup" | "away" | "excuses"> & {
   curling_game_players: { position: Position; curling_players: Player }[];
-  curling_away: { player_id: string }[];
+  curling_away: { player_id: string; excuse: string | null }[];
 };
 
 function toGame(row: GameRow): Game {
   const { curling_game_players, curling_away, ...rest } = row;
   const lineup: LineupSpot[] = curling_game_players.map((gp) => ({ position: gp.position, player: gp.curling_players }));
-  return { ...rest, lineup, away: curling_away.map((a) => a.player_id) };
+  const excuses = Object.fromEntries(curling_away.filter((a) => a.excuse).map((a) => [a.player_id, a.excuse!]));
+  return { ...rest, lineup, away: curling_away.map((a) => a.player_id), excuses };
 }
+
+/** Which league sheet and season the app is following (set on the Season page). Cached per request. */
+export const getLeagueConfig = cache(async (): Promise<LeagueConfig> => {
+  const { data, error } = await db().from(T.league).select("data").eq("key", "config").maybeSingle();
+  if (error) throw error;
+  return { ...DEFAULT_LEAGUE, ...((data?.data as Partial<LeagueConfig>) ?? {}) };
+});
 
 export async function getPlayers(includeInactive = false): Promise<Player[]> {
   let q = db().from(T.players).select("id, name, sort_order, active, photo_url").order("sort_order").order("name");
@@ -26,10 +35,27 @@ export async function getPlayers(includeInactive = false): Promise<Player[]> {
   return data;
 }
 
-export async function getGames(): Promise<Game[]> {
-  const { data, error } = await db().from(T.games).select(GAME_SELECT).order("starts_at");
+/** This season's games (or another season's, by name). */
+export async function getGames(season?: string): Promise<Game[]> {
+  const s = season ?? (await getLeagueConfig()).season;
+  const { data, error } = await db().from(T.games).select(GAME_SELECT).eq("season", s).order("starts_at");
   if (error) throw error;
   return (data as unknown as GameRow[]).map(toGame);
+}
+
+/** Record for every season, newest first, for the season history list. */
+export async function getSeasonRecords(): Promise<{ season: string; games: Pick<Game, "our_score" | "their_score" | "league_result" | "jugs">[] }[]> {
+  const { data, error } = await db()
+    .from(T.games)
+    .select("season, starts_at, our_score, their_score, league_result, jugs")
+    .order("starts_at", { ascending: false });
+  if (error) throw error;
+  const bySeason = new Map<string, Pick<Game, "our_score" | "their_score" | "league_result" | "jugs">[]>();
+  for (const g of data) {
+    if (!bySeason.has(g.season)) bySeason.set(g.season, []);
+    bySeason.get(g.season)!.push(g);
+  }
+  return [...bySeason].map(([season, games]) => ({ season, games }));
 }
 
 export async function getGame(id: string): Promise<Game | null> {

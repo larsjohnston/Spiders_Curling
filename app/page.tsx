@@ -1,20 +1,23 @@
 import Link from "next/link";
-import { getGames, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/data";
+import { getGames, getLeagueConfig, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/data";
 import { isUnlocked } from "@/lib/auth";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, localDateKey, localInputToDate } from "@/lib/time";
 import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game } from "@/lib/types";
 import GameCard, { RESULT_STYLE } from "@/components/GameCard";
+import BeerBadge from "@/components/BeerBadge";
+import { scoutingReport } from "@/lib/scouting";
 
 // A game counts as "upcoming" until 3 hours after its start so a game in progress stays on top.
 const GAME_LENGTH_MS = 3 * 60 * 60 * 1000;
 
 export default async function SchedulePage() {
-  const [games, players, unlocked, league] = await Promise.all([
+  const [games, players, unlocked, league, config] = await Promise.all([
     getGames(),
     getPlayers(),
     isUnlocked(),
     getLeagueSnapshot(),
+    getLeagueConfig(),
   ]);
   // Server component rendered once per request, so reading the clock here is safe.
   // eslint-disable-next-line react-hooks/purity
@@ -36,6 +39,7 @@ export default async function SchedulePage() {
     const r = effectiveResult(g);
     if (r) record[r]++;
   }
+  const jugs = games.reduce((n, g) => n + (g.jugs ?? 0), 0);
 
   // Games that haven't started yet with fewer than four people still available.
   const shortGames = upcoming
@@ -56,10 +60,20 @@ export default async function SchedulePage() {
         </div>
       )}
       <section>
-        <div className="text-sm text-muted">Record</div>
-        <div className="text-3xl font-bold tabular-nums">
-          {record.W}–{record.L}
-          {record.T > 0 && `–${record.T}`}
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-sm text-muted">Record</div>
+            <div className="text-3xl font-bold tabular-nums">
+              {record.W}–{record.L}
+              {record.T > 0 && `–${record.T}`}
+            </div>
+          </div>
+          {jugs > 0 && (
+            <div className="text-right">
+              <div className="text-sm text-muted">Jugs this season</div>
+              <div className="text-3xl font-bold tabular-nums">🍺 {jugs}</div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -89,6 +103,7 @@ export default async function SchedulePage() {
               unlocked={unlocked}
               now={now}
               opponentRecord={leagueRecord(league, game.opponent)}
+              scouting={scoutingReport(game.opponent, config.team, league)}
             />
           ) : (
             <div
@@ -137,6 +152,9 @@ function PastRow({ game }: { game: Game }) {
             <span className={`w-6 text-center text-xl font-black ${RESULT_STYLE[result]}`}>{result}</span>
             <span className={`w-14 text-right tabular-nums ${scored ? "font-semibold" : "text-xs text-muted"}`}>
               {scored ? `${game.our_score}–${game.their_score}` : "league"}
+            </span>
+            <span className="w-12 text-right">
+              <BeerBadge jugs={game.jugs} size="sm" />
             </span>
           </>
         ) : (

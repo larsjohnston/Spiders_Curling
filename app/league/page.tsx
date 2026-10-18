@@ -1,16 +1,22 @@
-import { getLeagueSnapshot, type LeagueSnapshot } from "@/lib/data";
+import { getGames, getLeagueConfig, getLeagueSnapshot, getPlayers, type LeagueSnapshot } from "@/lib/data";
 import { isUnlocked } from "@/lib/auth";
-import { LEAGUE, TIMEZONE } from "@/lib/config";
+import { TIMEZONE, type LeagueConfig } from "@/lib/config";
 import { RESULT_STYLE } from "@/components/GameCard";
 import SyncButton from "@/components/SyncButton";
 import LeagueSchedule from "./LeagueSchedule";
+import LuckyCharms from "./LuckyCharms";
 
 const heading = "text-sm font-semibold uppercase tracking-wide text-muted";
 const short = (team: string) => team.split(",")[0].slice(0, 3);
-const display = (team: string) => (team === LEAGUE.team ? "Spiders" : team);
 
 export default async function LeaguePage() {
-  const [league, unlocked] = await Promise.all([getLeagueSnapshot(), isUnlocked()]);
+  const [league, unlocked, config, games, players] = await Promise.all([
+    getLeagueSnapshot(),
+    isUnlocked(),
+    getLeagueConfig(),
+    getGames(),
+    getPlayers(),
+  ]);
   if (!league) {
     return (
       <div className="space-y-3 rounded-xl border border-dashed border-line p-6 text-center text-muted">
@@ -21,18 +27,22 @@ export default async function LeaguePage() {
   }
   return (
     <div className="space-y-8">
-      <Standings league={league} />
-      {league.matrix && <Matrix matrix={league.matrix} />}
-      {league.weeks && <LeagueSchedule weeks={league.weeks} matrix={league.matrix} team={LEAGUE.team} division={LEAGUE.division} />}
+      <Standings league={league} config={config} />
+      <LuckyCharms games={games} players={players} />
+      {league.matrix && <Matrix matrix={league.matrix} config={config} />}
+      {league.weeks && (
+        <LeagueSchedule weeks={league.weeks} matrix={league.matrix} team={config.team} division={config.division} />
+      )}
       <SyncFooter league={league} unlocked={unlocked} />
     </div>
   );
 }
 
-function Standings({ league }: { league: LeagueSnapshot }) {
+function Standings({ league, config }: { league: LeagueSnapshot; config: LeagueConfig }) {
+  const display = (team: string) => (team === config.team ? "Spiders" : team);
   return (
     <section className="space-y-2">
-      <h2 className={heading}>Division {LEAGUE.division} standings</h2>
+      <h2 className={heading}>Division {config.division} standings</h2>
       <table className="w-full overflow-hidden rounded-xl border border-line bg-card text-sm">
         <thead className="text-xs text-muted">
           <tr className="border-b border-line">
@@ -47,7 +57,7 @@ function Standings({ league }: { league: LeagueSnapshot }) {
           {league.standings.map((t, i) => (
             <tr
               key={t.team}
-              className={`border-b border-line last:border-0 ${t.team === LEAGUE.team ? "bg-stone-blue/10 font-semibold" : ""}`}
+              className={`border-b border-line last:border-0 ${t.team === config.team ? "bg-stone-blue/10 font-semibold" : ""}`}
             >
               <td className="py-2 pl-4">
                 <span className="mr-2 inline-block w-4 text-muted">{i + 1}</span>
@@ -67,7 +77,8 @@ function Standings({ league }: { league: LeagueSnapshot }) {
 }
 
 /** Head-to-head grid: row team's result against each column team. */
-function Matrix({ matrix }: { matrix: NonNullable<LeagueSnapshot["matrix"]> }) {
+function Matrix({ matrix, config }: { matrix: NonNullable<LeagueSnapshot["matrix"]>; config: LeagueConfig }) {
+  const display = (team: string) => (team === config.team ? "Spiders" : team);
   return (
     <section className="space-y-2">
       <h2 className={heading}>Results grid</h2>
@@ -80,16 +91,16 @@ function Matrix({ matrix }: { matrix: NonNullable<LeagueSnapshot["matrix"]> }) {
                 <th
                   key={t}
                   title={t}
-                  className={`w-9 px-1 font-medium ${t === LEAGUE.team ? "bg-stone-blue/10 text-ink" : ""}`}
+                  className={`w-9 px-1 font-medium ${t === config.team ? "bg-stone-blue/10 text-ink" : ""}`}
                 >
-                  {t === LEAGUE.team ? "Spi" : short(t)}
+                  {t === config.team ? "Spi" : short(t)}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {matrix.teams.map((row) => {
-              const us = row === LEAGUE.team;
+              const us = row === config.team;
               return (
                 <tr key={row} className={`border-b border-line last:border-0 ${us ? "bg-stone-blue/10 font-semibold" : ""}`}>
                   <td className={`sticky left-0 py-1.5 pr-2 pl-3 whitespace-nowrap ${us ? "bg-[color-mix(in_srgb,var(--blue)_10%,var(--card))]" : "bg-card"}`}>
@@ -101,7 +112,7 @@ function Matrix({ matrix }: { matrix: NonNullable<LeagueSnapshot["matrix"]> }) {
                       <td
                         key={col}
                         className={`text-center font-bold ${row === col ? "bg-line/60" : ""} ${
-                          col === LEAGUE.team && !us ? "bg-stone-blue/10" : ""
+                          col === config.team && !us ? "bg-stone-blue/10" : ""
                         } ${r ? RESULT_STYLE[r] : ""}`}
                       >
                         {r ?? ""}

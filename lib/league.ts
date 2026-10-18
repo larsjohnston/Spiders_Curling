@@ -17,6 +17,36 @@ function decode(s: string): string {
     .trim();
 }
 
+/**
+ * Turn whatever link someone pastes (pubhtml, a tab link, with #gid=…) into the published sheet base,
+ * e.g. https://docs.google.com/spreadsheets/d/e/<key>/pubhtml. Null if it isn't a published sheet link.
+ */
+export function normalizeSheetUrl(input: string): string | null {
+  const m = /docs\.google\.com\/spreadsheets\/d\/e\/([\w-]+)/.exec(input.trim());
+  return m ? `https://docs.google.com/spreadsheets/d/e/${m[1]}/pubhtml` : null;
+}
+
+/** URL of one tab's published page. */
+export function tabUrl(sheetUrl: string, gid: string): string {
+  return `${sheetUrl}/sheet?headers=false&gid=${gid}`;
+}
+
+/** Tab names and ids listed on a published sheet's main page. */
+export function parseTabs(html: string): { name: string; gid: string }[] {
+  return [...html.matchAll(/\{name: "((?:[^"\\]|\\.)*)", pageUrl: "[^"]*", gid: "(\d+)"/g)].map((m) => ({
+    name: JSON.parse(`"${m[1]}"`) as string,
+    gid: m[2],
+  }));
+}
+
+/** Best guess at the season schedule tab ("Sch-…") and our division's grid ("C-…"). */
+export function guessTabs(tabs: { name: string; gid: string }[], division: string) {
+  return {
+    scheduleGid: tabs.find((t) => /^sch/i.test(t.name))?.gid ?? null,
+    divisionGid: tabs.find((t) => t.name.toUpperCase().startsWith(`${division.toUpperCase()}-`))?.gid ?? null,
+  };
+}
+
 /** Cell text for every <tr> in a published sheet page (row-number <th> cells are skipped). */
 export function tableRows(html: string): string[][] {
   const rows: string[][] = [];

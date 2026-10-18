@@ -49,11 +49,13 @@ export function availabilityMessage(
   away: boolean,
   available: number,
   rosterSize: number,
+  excuse?: string | null,
 ): PushText {
   const start = new Date(game.starts_at);
   const when = `${formatDay(start, TIMEZONE)} ${formatTime(start, TIMEZONE)} vs ${game.opponent}`;
   const starter = game.lineup.some((s) => s.player.id === player.id);
   const parts = [`${available} of ${rosterSize} available`];
+  if (away && excuse) parts.unshift(`"${excuse}"`);
   if (away && starter) parts.push("was in the lineup, needs a sub");
   if (available < TEAM_SIZE) parts.push(`short-handed (need ${TEAM_SIZE})`);
   return {
@@ -66,11 +68,12 @@ const STORY_PUSH_LIMIT = 180;
 
 /** Result push for the whole team: score line in the title, story (or who played) in the body. */
 export function resultMessage(
-  game: Pick<Game, "opponent" | "our_score" | "their_score" | "lineup" | "story">,
+  game: Pick<Game, "opponent" | "our_score" | "their_score" | "lineup" | "story"> & { jugs?: number | null },
 ): PushText {
   const r = resultOf(game);
   const word = r === "W" ? "Win" : r === "L" ? "Loss" : "Tie";
-  const title = `${word} ${game.our_score}–${game.their_score} vs ${game.opponent}`;
+  const beer = game.jugs ? ` 🍺×${game.jugs}` : "";
+  const title = `${word} ${game.our_score}–${game.their_score} vs ${game.opponent}${beer}`;
   const story = game.story?.trim();
   if (story) {
     return { title, body: story.length > STORY_PUSH_LIMIT ? `${story.slice(0, STORY_PUSH_LIMIT - 1)}…` : story };

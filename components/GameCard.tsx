@@ -3,6 +3,7 @@ import { TIMEZONE } from "@/lib/config";
 import { formatDay, formatTime } from "@/lib/time";
 import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game, type Player } from "@/lib/types";
 import GameLineup from "./GameLineup";
+import BeerBadge from "./BeerBadge";
 
 export const RESULT_STYLE = { W: "text-green-600", L: "text-stone-red", T: "text-muted" } as const;
 
@@ -14,6 +15,7 @@ export default function GameCard({
   unlocked,
   now,
   opponentRecord,
+  scouting,
 }: {
   game: Game;
   players: Player[];
@@ -22,6 +24,8 @@ export default function GameCard({
   now: number;
   /** Opponent's league record, e.g. "2–1", from the synced standings. */
   opponentRecord?: string | null;
+  /** Snarky one-liner about the opponent (upcoming games only). */
+  scouting?: string | null;
 }) {
   const start = new Date(game.starts_at);
   const started = start.getTime() <= now;
@@ -49,6 +53,11 @@ export default function GameCard({
             {opponentRecord && <span className="ml-1.5 text-base font-medium text-muted tabular-nums">({opponentRecord})</span>}
           </div>
           {game.notes && <p className="mt-1 text-sm text-muted">{game.notes}</p>}
+          {scouting && !started && (
+            <p className="mt-1.5 text-sm text-muted">
+              <span className="font-semibold text-ink">🔎 Scouting:</span> {scouting}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-start gap-2">
           {result ? (
@@ -56,6 +65,9 @@ export default function GameCard({
               <div className={`text-5xl font-black ${RESULT_STYLE[result]}`}>{result}</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-muted">
                 {scored ? `${game.our_score}–${game.their_score}` : "League result"}
+              </div>
+              <div className="mt-1.5">
+                <BeerBadge jugs={game.jugs} />
               </div>
             </div>
           ) : next ? (

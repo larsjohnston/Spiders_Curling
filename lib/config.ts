@@ -20,12 +20,23 @@ export const T = {
 
 export const PHOTO_BUCKET = "curling-photos";
 
-/** The league's published Google Sheet (Tuesday Open, 1st Square 2026/27). */
-export const LEAGUE = {
+/** Which league sheet the app follows. Stored in the DB (Season page); this is the first season's. */
+export type LeagueConfig = {
+  season: string;
+  /** Published sheet base, e.g. https://docs.google.com/spreadsheets/d/e/<key>/pubhtml */
+  sheetUrl: string;
+  team: string;
+  division: string;
+  scheduleGid: string;
+  divisionGid: string;
+};
+
+export const DEFAULT_LEAGUE: LeagueConfig = {
+  season: "2026/27 1st Square",
+  sheetUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUPsPnr8e_P6LHQ-SSmOfITHg5KsQyfs0TmuGvFiRDtL03U3BR0GCb2pqxvAPVcq2U4KglWAjc1lDx/pubhtml",
   team: "Johnston, L.",
   division: "C",
-  sheetUrl:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUPsPnr8e_P6LHQ-SSmOfITHg5KsQyfs0TmuGvFiRDtL03U3BR0GCb2pqxvAPVcq2U4KglWAjc1lDx/pubhtml/sheet?headers=false&gid=",
   scheduleGid: "1418151424",
   divisionGid: "1235377529",
-} as const;
+};

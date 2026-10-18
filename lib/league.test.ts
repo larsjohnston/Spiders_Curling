@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseDivision, parseSchedule, parseWeeks } from "./league";
+import { guessTabs, normalizeSheetUrl, parseDivision, parseSchedule, parseTabs, parseWeeks } from "./league";
 
 // Real pages saved from the league's published sheet (Oct 18, 2026).
 const fixture = (name: string) => readFileSync(join(__dirname, "__fixtures__", name), "utf8");
@@ -79,5 +79,24 @@ describe("parseDivision", () => {
         expect(div.teams.find((o) => o.team === opp)!.results[t.team]).toBe(flip[r]);
       }
     }
+  });
+});
+
+describe("new-season helpers", () => {
+  const KEY = "2PACX-1vTUPsPnr8e_P6LHQ-SSmOfITHg5KsQyfs0TmuGvFiRDtL03U3BR0GCb2pqxvAPVcq2U4KglWAjc1lDx";
+  const BASE = `https://docs.google.com/spreadsheets/d/e/${KEY}/pubhtml`;
+
+  it("accepts any form of a published sheet link", () => {
+    expect(normalizeSheetUrl(`${BASE}#gid=1235377529`)).toBe(BASE);
+    expect(normalizeSheetUrl(`  ${BASE}/sheet?headers=false&gid=1418151424 `)).toBe(BASE);
+    expect(normalizeSheetUrl(`https://docs.google.com/spreadsheets/d/e/${KEY}/pub?output=csv`)).toBe(BASE);
+    expect(normalizeSheetUrl("https://example.com/schedule")).toBeNull();
+  });
+
+  it("lists the tabs and picks the schedule and our division", () => {
+    const tabs = parseTabs(fixture("league-index.html"));
+    expect(tabs.map((t) => t.name)).toEqual(["Sch-Sq1", "A-Sq1", "B-Sq1", "C-Sq1", "D-Sq1", "Stgs-Sq1", "TUE-Sch📺"]);
+    expect(guessTabs(tabs, "C")).toEqual({ scheduleGid: "1418151424", divisionGid: "1235377529" });
+    expect(guessTabs(tabs, "b")).toEqual({ scheduleGid: "1418151424", divisionGid: "474263792" });
   });
 });
