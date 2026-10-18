@@ -42,20 +42,24 @@ function eveningTime(text: string): string {
 export type LeagueGame = { date: string; time: string; sheet: string; opponent: string };
 export type LeagueSchedule = { games: LeagueGame[]; byes: string[] };
 
+export type WeekGame = { time: string; sheet: string; division: string; teams: [string, string] };
+export type LeagueWeek = { date: string; games: WeekGame[]; byes: string[] };
+
 /**
- * The season schedule tab: date rows ("Sep 29, 2026"), a header row per draw block ("Ice | Div | | 6:45"),
- * then one row per sheet with both draws side by side ("3 | C | Patel, R. | vs. | Johnston, L.").
+ * The season schedule tab, every game in the league: date rows ("Sep 29, 2026"), a header row per draw
+ * block ("Ice | Div | | 6:45"), then one row per sheet with both draws side by side
+ * ("3 | C | Patel, R. | vs. | Johnston, L."), and a "Bye" row per draw.
  */
-export function parseSchedule(html: string, team: string): LeagueSchedule {
-  const games: LeagueGame[] = [];
-  const byes: string[] = [];
-  let date: string | null = null;
+export function parseWeeks(html: string): LeagueWeek[] {
+  const weeks: LeagueWeek[] = [];
+  let week: LeagueWeek | null = null;
   let blocks: { col: number; time: string }[] = [];
 
   for (const row of tableRows(html)) {
     const d = row.map(isoDate).find(Boolean);
     if (d) {
-      date = d;
+      week = { date: d, games: [], byes: [] };
+      weeks.push(week);
       blocks = [];
       continue;
     }
@@ -67,14 +71,25 @@ export function parseSchedule(html: string, team: string): LeagueSchedule {
       });
       continue;
     }
-    if (!date) continue;
+    if (!week) continue;
     for (const { col, time } of blocks) {
-      const [ice, , a, vs, b] = row.slice(col, col + 5);
-      if (ice === "Bye" && (a === team || b === team)) byes.push(date);
-      if (vs !== "vs." || (a !== team && b !== team)) continue;
-      games.push({ date, time, sheet: ice, opponent: a === team ? b : a });
+      const [ice, division, a, vs, b] = row.slice(col, col + 5);
+      if (ice === "Bye") week.byes.push(...[a, b].filter((t) => t && TEAM_NAME.test(t)));
+      else if (vs === "vs." && a && b) week.games.push({ time, sheet: ice, division, teams: [a, b] });
     }
   }
+  return weeks;
+}
+
+/** Our games and bye weeks, from the full schedule. */
+export function parseSchedule(html: string, team: string): LeagueSchedule {
+  const weeks = parseWeeks(html);
+  const games = weeks.flatMap(({ date, games }) =>
+    games
+      .filter((g) => g.teams.includes(team))
+      .map((g) => ({ date, time: g.time, sheet: g.sheet, opponent: g.teams[0] === team ? g.teams[1] : g.teams[0] })),
+  );
+  const byes = weeks.filter((w) => w.byes.includes(team)).map((w) => w.date);
   return { games, byes };
 }
 

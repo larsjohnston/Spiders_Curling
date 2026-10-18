@@ -2,7 +2,7 @@ import "server-only";
 import { LEAGUE, T } from "./config";
 import { db } from "./db";
 import { getGames, type LeagueSnapshot } from "./data";
-import { parseDivision, parseSchedule } from "./league";
+import { parseDivision, parseSchedule, parseWeeks } from "./league";
 import { planSync } from "./leagueSync";
 import { getSubscriptions, sendPush } from "./push";
 
@@ -19,6 +19,7 @@ async function fetchTab(gid: string): Promise<string> {
 export async function syncLeague(now = new Date(), { dryRun = false } = {}): Promise<string[]> {
   const [scheduleHtml, divisionHtml] = await Promise.all([fetchTab(LEAGUE.scheduleGid), fetchTab(LEAGUE.divisionGid)]);
   const schedule = parseSchedule(scheduleHtml, LEAGUE.team);
+  const weeks = parseWeeks(scheduleHtml);
   const division = parseDivision(divisionHtml);
   // A layout change on the league's side shouldn't look like "every game was cancelled".
   if (schedule.games.length === 0) throw new Error(`No games for ${LEAGUE.team} found in the league schedule`);
@@ -51,6 +52,11 @@ export async function syncLeague(now = new Date(), { dryRun = false } = {}): Pro
     standings: division.teams
       .map(({ team, games, wins, losses, ties, points }) => ({ team, games, wins, losses, ties, points }))
       .sort((a, b) => b.points - a.points || b.wins - a.wins),
+    matrix: {
+      teams: division.teams.map((t) => t.team),
+      results: Object.fromEntries(division.teams.map((t) => [t.team, t.results])),
+    },
+    weeks,
   };
   const { error } = await db()
     .from(T.league)

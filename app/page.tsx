@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { getGames, getLeagueSnapshot, getPlayers, type LeagueSnapshot } from "@/lib/data";
+import { getGames, getLeagueSnapshot, getPlayers } from "@/lib/data";
 import { isUnlocked } from "@/lib/auth";
-import { LEAGUE, TIMEZONE } from "@/lib/config";
+import { TIMEZONE } from "@/lib/config";
 import { formatDay, localDateKey, localInputToDate } from "@/lib/time";
 import { effectiveResult, resultOf, type Game } from "@/lib/types";
 import GameCard, { RESULT_STYLE } from "@/components/GameCard";
-import SyncButton from "@/components/SyncButton";
 
 // A game counts as "upcoming" until 3 hours after its start so a game in progress stays on top.
 const GAME_LENGTH_MS = 3 * 60 * 60 * 1000;
@@ -87,7 +86,6 @@ export default async function SchedulePage() {
         </section>
       )}
 
-      {league && <Standings league={league} unlocked={unlocked} />}
     </div>
   );
 }
@@ -114,54 +112,5 @@ function PastRow({ game }: { game: Game }) {
         </span>
       </Link>
     </li>
-  );
-}
-
-function Standings({ league, unlocked }: { league: LeagueSnapshot; unlocked: boolean }) {
-  const synced = new Date(league.syncedAt).toLocaleString("en-CA", {
-    timeZone: TIMEZONE,
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return (
-    <section className="space-y-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Division {LEAGUE.division} standings</h2>
-      <table className="w-full overflow-hidden rounded-xl border border-line bg-card text-sm">
-        <thead className="text-xs text-muted">
-          <tr className="border-b border-line">
-            <th className="py-2 pl-4 text-left font-medium">Team</th>
-            <th className="w-10 font-medium">W</th>
-            <th className="w-10 font-medium">L</th>
-            <th className="w-10 font-medium">T</th>
-            <th className="w-14 pr-4 text-right font-medium">Pts</th>
-          </tr>
-        </thead>
-        <tbody className="tabular-nums">
-          {league.standings.map((t, i) => {
-            const us = t.team === LEAGUE.team;
-            return (
-              <tr key={t.team} className={`border-b border-line last:border-0 ${us ? "bg-stone-blue/10 font-semibold" : ""}`}>
-                <td className="py-2 pl-4">
-                  <span className="mr-2 inline-block w-4 text-muted">{i + 1}</span>
-                  {us ? "Spiders" : t.team}
-                </td>
-                <td className="text-center">{t.wins}</td>
-                <td className="text-center">{t.losses}</td>
-                <td className="text-center">{t.ties}</td>
-                <td className="pr-4 text-right">{t.points}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="flex items-start justify-between gap-3 text-xs text-muted">
-        <p>
-          League sheet{league.asOf ? ` as of ${league.asOf}` : ""} · synced {synced}. Win 10 · Tie 6 · Loss 2 pts.
-        </p>
-        {unlocked && <SyncButton />}
-      </div>
-    </section>
   );
 }

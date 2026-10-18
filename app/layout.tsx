@@ -3,11 +3,10 @@ import Link from "next/link";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
-import MeLink from "@/components/MeLink";
+import HeaderNav from "@/components/HeaderNav";
 import { getPlayers } from "@/lib/data";
 import { TEAM_NAME } from "@/lib/config";
 import { isUnlocked } from "@/lib/auth";
-import { lockAction } from "./actions";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -30,7 +29,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full font-sans">
         <ServiceWorker />
         <header className="bg-navy pt-[env(safe-area-inset-top)] text-white">
-          <div className="mx-auto flex max-w-xl items-center gap-4 px-4 py-3">
+          <div className="mx-auto flex max-w-xl items-center gap-2 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold">
               <span aria-hidden className="relative inline-block h-6 w-6 rounded-full bg-stone-blue">
                 <span className="absolute inset-[3px] rounded-full bg-white" />
@@ -39,26 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </span>
               {TEAM_NAME}
             </Link>
-            <nav className="ml-auto flex items-center gap-4 text-sm font-medium text-white/80">
-              <MeLink players={players.map(({ id, name }) => ({ id, name }))} />
-              {unlocked ? (
-                <>
-                  <Link
-                    href="/games/new"
-                    aria-label="Add game"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xl leading-none text-white"
-                  >
-                    +
-                  </Link>
-                  <Link href="/roster">Roster</Link>
-                  <form action={lockAction}>
-                    <button className="text-white/60">Lock</button>
-                  </form>
-                </>
-              ) : (
-                <Link href="/unlock">Edit</Link>
-              )}
-            </nav>
+            <HeaderNav players={players.map(({ id, name }) => ({ id, name }))} unlocked={unlocked} />
           </div>
         </header>
         <main className="mx-auto max-w-xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">{children}</main>

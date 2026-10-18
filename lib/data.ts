@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "./db";
-import type { Game, LineupSpot, Player } from "./types";
+import type { Game, LineupSpot, Player, Result } from "./types";
+import type { LeagueWeek } from "./league";
 import { T, type Position } from "./config";
 
 const GAME_SELECT =
@@ -40,8 +41,13 @@ export async function getGame(id: string): Promise<Game | null> {
 export type LeagueSnapshot = {
   asOf: string | null;
   syncedAt: string;
+  /** Our bye weeks (YYYY-MM-DD). */
   byes: string[];
   standings: { team: string; games: number; wins: number; losses: number; ties: number; points: number }[];
+  /** Division results grid: teams in sheet order, and each team's W/L/T against each opponent. */
+  matrix?: { teams: string[]; results: Record<string, Record<string, Result>> };
+  /** Every game in the league, week by week. */
+  weeks?: LeagueWeek[];
 };
 
 /** Last league sync (standings, byes), or null before the first sync. */

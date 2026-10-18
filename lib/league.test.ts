@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseDivision, parseSchedule } from "./league";
+import { parseDivision, parseSchedule, parseWeeks } from "./league";
 
 // Real pages saved from the league's published sheet (Oct 18, 2026).
 const fixture = (name: string) => readFileSync(join(__dirname, "__fixtures__", name), "utf8");
@@ -24,6 +24,28 @@ describe("parseSchedule", () => {
 
   it("finds our bye week", () => {
     expect(byes).toEqual(["2026-10-27"]);
+  });
+});
+
+describe("parseWeeks", () => {
+  const weeks = parseWeeks(fixture("league-schedule.html"));
+
+  it("reads every week of the whole league", () => {
+    expect(weeks.map((w) => w.date)).toEqual([
+      "2026-09-29", "2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27",
+      "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24",
+    ]);
+    // 8 sheets × 2 draws, and 2 byes per draw.
+    for (const w of weeks) {
+      expect(w.games).toHaveLength(16);
+      expect(w.byes).toHaveLength(4);
+    }
+  });
+
+  it("keeps draw time, sheet and division for each game", () => {
+    expect(weeks[0].games).toContainEqual({ time: "21:00", sheet: "3", division: "C", teams: ["Patel, R.", "Johnston, L."] });
+    expect(weeks[0].games).toContainEqual({ time: "18:45", sheet: "1", division: "A", teams: ["Poon, J.", "Jones, D."] });
+    expect(weeks[0].byes).toEqual(["Dubé, M.", "Macinnis, G.", "Lind, S.", "Edgerton, S."]);
   });
 });
 
