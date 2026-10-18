@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, formatTime } from "@/lib/time";
-import { resultOf, type Game, type Player } from "@/lib/types";
+import { effectiveResult, resultOf, type Game, type Player } from "@/lib/types";
 import GameLineup from "./GameLineup";
 
 export const RESULT_STYLE = { W: "text-green-600", L: "text-stone-red", T: "text-muted" } as const;
@@ -22,7 +22,8 @@ export default function GameCard({
 }) {
   const start = new Date(game.starts_at);
   const started = start.getTime() <= now;
-  const result = resultOf(game);
+  const result = effectiveResult(game);
+  const scored = resultOf(game) !== null;
   return (
     <article className={`rounded-xl border bg-card p-4 ${next ? "border-stone-blue" : "border-line"}`}>
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -39,7 +40,7 @@ export default function GameCard({
             <div className="text-center leading-none">
               <div className={`text-5xl font-black ${RESULT_STYLE[result]}`}>{result}</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-muted">
-                {game.our_score}–{game.their_score}
+                {scored ? `${game.our_score}–${game.their_score}` : "League result"}
               </div>
             </div>
           ) : next ? (
@@ -63,9 +64,9 @@ export default function GameCard({
       {started && (
         <Link
           href={`/games/${game.id}/score`}
-          className={`mt-3 w-full text-sm ${result ? "btn-ghost py-1.5" : "btn py-2"}`}
+          className={`mt-3 w-full text-sm ${scored ? "btn-ghost py-1.5" : "btn py-2"}`}
         >
-          {result ? "Update score" : "Enter score"}
+          {scored ? "Update score" : "Enter score"}
         </Link>
       )}
     </article>

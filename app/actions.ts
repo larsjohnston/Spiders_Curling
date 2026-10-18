@@ -9,6 +9,8 @@ import { localInputToDate } from "@/lib/time";
 import { getGame } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
 import { resultMessage } from "@/lib/reminder";
+import { resultOf } from "@/lib/types";
+import { syncLeague } from "@/lib/leagueRun";
 
 export type FormState = { error?: string; ok?: string };
 
@@ -126,6 +128,12 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
   const before = await getGame(id);
   if (!before) return { error: "Game not found" };
   if (new Date(before.starts_at).getTime() > Date.now()) return { error: "This game hasn't started yet" };
+  // The league sheet is the source of truth for W/L/T; don't let the app contradict it.
+  const entered = resultOf({ our_score: our, their_score: their });
+  if (entered && before.league_result && entered !== before.league_result) {
+    const word = { W: "win", L: "loss", T: "tie" }[before.league_result];
+    return { error: `The league has this game as a ${word}. Check the score with the skip.` };
+  }
 
   const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story }).eq("id", id);
   if (error) return { error: error.message };
@@ -160,6 +168,18 @@ export async function saveRoster(_: FormState, form: FormData): Promise<FormStat
   }
   revalidatePath("/", "layout");
   return { ok: "Roster saved" };
+}
+
+/** Pull the league sheet now instead of waiting for the hourly job. */
+export async function syncLeagueNow(): Promise<FormState> {
+  await requireUnlocked();
+  try {
+    const log = await syncLeague();
+    revalidatePath("/");
+    return { ok: log.length ? log.join(" · ") : "Already up to date" };
+  } catch (e) {
+    return { error: `Sync failed: ${e instanceof Error ? e.message : String(e)}` };
+  }
 }
 
 /** A player marking themselves away (or back in) for one game. No PIN: it's their own availability. */

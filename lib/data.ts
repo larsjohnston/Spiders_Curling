@@ -4,7 +4,7 @@ import type { Game, LineupSpot, Player } from "./types";
 import { T, type Position } from "./config";
 
 const GAME_SELECT =
-  "id, starts_at, opponent, sheet, notes, our_score, their_score, story, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
+  "id, starts_at, opponent, sheet, notes, our_score, their_score, story, league_result, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
 
 type GameRow = Omit<Game, "lineup"> & {
   curling_game_players: { position: Position; curling_players: Player }[];
@@ -35,6 +35,20 @@ export async function getGame(id: string): Promise<Game | null> {
   const { data, error } = await db().from(T.games).select(GAME_SELECT).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? toGame(data as unknown as GameRow) : null;
+}
+
+export type LeagueSnapshot = {
+  asOf: string | null;
+  syncedAt: string;
+  byes: string[];
+  standings: { team: string; games: number; wins: number; losses: number; ties: number; points: number }[];
+};
+
+/** Last league sync (standings, byes), or null before the first sync. */
+export async function getLeagueSnapshot(): Promise<LeagueSnapshot | null> {
+  const { data, error } = await db().from(T.league).select("data").eq("key", "snapshot").maybeSingle();
+  if (error) throw error;
+  return (data?.data as LeagueSnapshot) ?? null;
 }
 
 /** Unreminded games starting in the next two days; the caller narrows to "tomorrow". */

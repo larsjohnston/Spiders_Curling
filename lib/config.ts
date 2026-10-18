@@ -15,6 +15,17 @@ export const T = {
   gamePlayers: "curling_game_players",
   subscriptions: "curling_push_subscriptions",
   away: "curling_away",
+  league: "curling_league",
 } as const;
 
 export const PHOTO_BUCKET = "curling-photos";
+
+/** The league's published Google Sheet (Tuesday Open, 1st Square 2026/27). */
+export const LEAGUE = {
+  team: "Johnston, L.",
+  division: "C",
+  sheetUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUPsPnr8e_P6LHQ-SSmOfITHg5KsQyfs0TmuGvFiRDtL03U3BR0GCb2pqxvAPVcq2U4KglWAjc1lDx/pubhtml/sheet?headers=false&gid=",
+  scheduleGid: "1418151424",
+  divisionGid: "1235377529",
+} as const;

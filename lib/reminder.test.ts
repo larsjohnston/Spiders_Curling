@@ -9,11 +9,13 @@ const player = (id: string, name: string) => ({ id, name, sort_order: 0, active:
 describe("time helpers", () => {
   it("converts Edmonton wall time to UTC across DST", () => {
     expect(localInputToDate("2026-10-20T19:00", TZ).toISOString()).toBe("2026-10-21T01:00:00.000Z"); // MDT
-    expect(localInputToDate("2026-12-01T19:00", TZ).toISOString()).toBe("2026-12-02T02:00:00.000Z"); // MST
+    // Winter cases use 2025: tzdata 2026c+ has Alberta staying on UTC−6 from Nov 2026, older data
+    // doesn't, and these tests shouldn't depend on which version the machine has.
+    expect(localInputToDate("2025-12-01T19:00", TZ).toISOString()).toBe("2025-12-02T02:00:00.000Z"); // MST
   });
 
   it("round-trips to the datetime-local format", () => {
-    expect(dateToLocalInput(new Date("2026-12-02T02:00:00Z"), TZ)).toBe("2026-12-01T19:00");
+    expect(dateToLocalInput(new Date("2025-12-02T02:00:00Z"), TZ)).toBe("2025-12-01T19:00");
   });
 
   it("finds tomorrow in the team timezone, not UTC", () => {
@@ -34,9 +36,9 @@ describe("gamesDueForReminder", () => {
     const tomorrow = [game("2026-10-19T21:00")];
     expect(gamesDueForReminder(tomorrow, new Date("2026-10-19T00:59:00Z"))).toHaveLength(0); // 6:59pm MDT
     expect(gamesDueForReminder(tomorrow, now)).toHaveLength(1);
-    const winter = [game("2026-12-02T21:00")];
-    expect(gamesDueForReminder(winter, new Date("2026-12-02T01:00:00Z"))).toHaveLength(0); // 6pm MST
-    expect(gamesDueForReminder(winter, new Date("2026-12-02T02:00:00Z"))).toHaveLength(1); // 7pm MST
+    const winter = [game("2025-12-03T21:00")];
+    expect(gamesDueForReminder(winter, new Date("2025-12-03T01:00:00Z"))).toHaveLength(0); // 6pm MST
+    expect(gamesDueForReminder(winter, new Date("2025-12-03T02:00:00Z"))).toHaveLength(1); // 7pm MST
   });
 
   it("picks only unreminded games on tomorrow's local date", () => {
