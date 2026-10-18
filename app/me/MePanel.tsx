@@ -1,157 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { sendTest, subscribe, unsubscribe, type FormState } from "../actions";
+import { useState } from "react";
+import type { FormState } from "../actions";
 import type { Player } from "@/lib/types";
+import Avatar from "@/components/Avatar";
 import FormMessage from "@/components/FormMessage";
+import InstallSteps from "@/components/InstallSteps";
 import { useMe } from "@/components/useMe";
+import { usePush } from "@/components/usePush";
 
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(padded);
-  const out = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-type Env = { supported: boolean; ios: boolean; standalone: boolean };
-
-export default function MePanel({ players, vapidKey }: { players: Player[]; vapidKey: string }) {
+export default function MePanel({ players }: { players: Player[] }) {
   const [me, setMe] = useMe();
-  const [env, setEnv] = useState<Env | null>(null);
-  const [sub, setSub] = useState<PushSubscription | null>(null);
+  const push = usePush();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<FormState>({});
 
-  useEffect(() => {
-    const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    // Reading browser capabilities has to happen after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnv({ supported, ios, standalone });
-    if (supported) {
-      navigator.serviceWorker.ready.then((reg) => reg.pushManager.getSubscription()).then(setSub);
-    }
-  }, []);
-
-  async function choose(id: string) {
-    setMe(id || null);
-    // Keep the server's record of who this device belongs to in sync.
-    if (sub) await subscribe(sub.toJSON() as never, id || null);
-  }
-
-  async function turnOn() {
+  async function run(action: () => Promise<FormState>) {
     setBusy(true);
     setMsg({});
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setMsg({ error: "Notifications are blocked. Allow them in Settings → Notifications → Spiders." });
-        return;
-      }
-      const reg = await navigator.serviceWorker.ready;
-      const s = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-      const res = await subscribe(s.toJSON() as never, me);
-      setSub(s);
-      setMsg(res.error ? res : { ok: "Notifications on. You'll get a reminder the evening before each game." });
-    } catch (e) {
-      setMsg({ error: e instanceof Error ? e.message : "Couldn't turn on notifications" });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function turnOff() {
-    if (!sub) return;
-    setBusy(true);
-    await unsubscribe(sub.endpoint);
-    await sub.unsubscribe();
-    setSub(null);
-    setMsg({ ok: "Notifications off" });
-    setBusy(false);
-  }
-
-  async function test() {
-    if (!sub) return;
-    setBusy(true);
-    setMsg(await sendTest(sub.endpoint));
+    setMsg(await action());
     setBusy(false);
   }
 
   return (
     <div className="space-y-6">
-      <section className="space-y-2 rounded-xl border border-line bg-card p-4">
-        <label className="label" htmlFor="me">
-          Who are you?
-        </label>
-        <select id="me" className="input" value={me ?? ""} onChange={(e) => choose(e.target.value)}>
-          <option value="">Pick your name</option>
+      <section className="space-y-3 rounded-xl border border-line bg-card p-4">
+        <h2 className="font-semibold">Who are you?</h2>
+        <ul className="grid grid-cols-3 gap-3">
           {players.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMe(p.id);
+                  void push.setPlayer(p.id);
+                }}
+                aria-pressed={me === p.id}
+                className={`flex w-full flex-col items-center gap-1 rounded-xl p-2 ${me === p.id ? "bg-stone-blue/10" : ""}`}
+              >
+                <Avatar player={p} size="lg" highlight={me === p.id} />
+                <span className={`text-sm ${me === p.id ? "font-semibold" : ""}`}>{p.name}</span>
+              </button>
+            </li>
           ))}
-        </select>
-        <p className="text-sm text-muted">Highlights your games and tells you in reminders whether you&apos;re playing.</p>
+        </ul>
       </section>
 
       <section className="space-y-3 rounded-xl border border-line bg-card p-4">
-        <h2 className="font-semibold">Game reminders</h2>
-        {env === null ? null : env.ios && !env.standalone ? (
-          <InstallSteps />
-        ) : !env.supported ? (
+        <h2 className="font-semibold">Notifications</h2>
+        {push.status === "needs-install" ? (
+          <>
+            <p className="text-sm">On iPhone, notifications only work once Spiders is on your Home Screen:</p>
+            <InstallSteps />
+          </>
+        ) : push.status === "unsupported" ? (
           <p className="text-sm text-muted">This browser doesn&apos;t support notifications.</p>
-        ) : sub ? (
+        ) : push.status === "denied" ? (
+          <p className="text-sm text-stone-red">
+            Notifications are blocked. Turn them on in <b>Settings → Notifications → Spiders</b>.
+          </p>
+        ) : push.status === "on" ? (
           <>
             <p className="text-sm">
-              <span className="font-semibold text-green-600">On</span> — you&apos;ll get a push the evening before each game with
-              the opponent and who&apos;s playing.
+              <span className="font-semibold text-green-600">On</span>: you&apos;ll get a reminder at 7pm the night before
+              you play, and every result.
             </p>
             <div className="flex gap-2">
-              <button className="btn flex-1" onClick={test} disabled={busy}>
+              <button className="btn flex-1" onClick={() => run(push.test)} disabled={busy}>
                 Send test
               </button>
-              <button className="btn-ghost" onClick={turnOff} disabled={busy}>
+              <button className="btn-ghost" onClick={() => run(push.turnOff)} disabled={busy}>
                 Turn off
               </button>
             </div>
           </>
-        ) : (
-          <>
-            <p className="text-sm text-muted">Get a push the evening before each game with the opponent and who&apos;s playing.</p>
-            <button className="btn w-full" onClick={turnOn} disabled={busy || !vapidKey}>
-              {busy ? "Turning on…" : "Turn on notifications"}
-            </button>
-          </>
-        )}
+        ) : push.status === "off" ? (
+          <button className="btn w-full py-3 text-base" onClick={() => run(() => push.turnOn(me))} disabled={busy}>
+            {busy ? "Turning on…" : "🔔 Turn on notifications"}
+          </button>
+        ) : null}
         <FormMessage state={msg} />
       </section>
-    </div>
-  );
-}
-
-function InstallSteps() {
-  return (
-    <div className="space-y-2 text-sm">
-      <p>On iPhone, notifications only work once the app is on your Home Screen:</p>
-      <ol className="list-decimal space-y-1 pl-5">
-        <li>
-          Open this page in <b>Safari</b>.
-        </li>
-        <li>
-          Tap the <b>Share</b> button (square with arrow).
-        </li>
-        <li>
-          Tap <b>Add to Home Screen</b>, then <b>Add</b>.
-        </li>
-        <li>Open Spiders from your Home Screen and come back to this page.</li>
-      </ol>
     </div>
   );
 }

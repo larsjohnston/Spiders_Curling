@@ -4,6 +4,8 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
 import HeaderNav from "@/components/HeaderNav";
+import PushBanner from "@/components/PushBanner";
+import Welcome from "@/components/Welcome";
 import { getPlayers } from "@/lib/data";
 import { TEAM_NAME } from "@/lib/config";
 import { isUnlocked } from "@/lib/auth";
@@ -41,6 +43,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <HeaderNav players={players.map(({ id, name }) => ({ id, name }))} unlocked={unlocked} />
           </div>
         </header>
+        <PushBanner />
+        <Welcome players={players.map(({ id, name, photo_url }) => ({ id, name, photo_url }))} />
         <main className="mx-auto max-w-xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">{children}</main>
       </body>
     </html>

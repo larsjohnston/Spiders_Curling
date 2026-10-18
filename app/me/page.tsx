@@ -6,7 +6,7 @@ export default async function MePage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Me</h1>
-      <MePanel players={players} vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
+      <MePanel players={players} />
     </div>
   );
 }
