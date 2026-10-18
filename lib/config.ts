@@ -1,5 +1,7 @@
 export const TEAM_NAME = "Spiders";
 export const TIMEZONE = "America/Edmonton";
+/** Local hour (24h) the night-before reminder goes out. */
+export const REMINDER_HOUR = 19;
 
 // The four playing spots. Positions rotate, so the app never shows these names;
 // they're just stable slot keys (the DB column still uses the curling names).

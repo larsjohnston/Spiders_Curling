@@ -1,15 +1,13 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import ScoreForm from "./ScoreForm";
 import GameLineup from "@/components/GameLineup";
 import { getGame, getPlayers } from "@/lib/data";
-import { unlockedOrRedirect } from "@/lib/guard";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, formatTime } from "@/lib/time";
 
+// Open to everyone (no PIN): anyone on the team can report a score.
 export default async function ScorePage({ params }: PageProps<"/games/[id]/score">) {
   const { id } = await params;
-  await unlockedOrRedirect(`/games/${id}/score`);
   const [game, players] = await Promise.all([getGame(id), getPlayers()]);
   if (!game) notFound();
   const start = new Date(game.starts_at);
@@ -26,11 +24,9 @@ export default async function ScorePage({ params }: PageProps<"/games/[id]/score
         opponent={game.opponent}
         ours={game.our_score?.toString() ?? ""}
         theirs={game.their_score?.toString() ?? ""}
+        story={game.story ?? ""}
       />
       <GameLineup game={game} players={players} canMarkAway={false} />
-      <Link href={`/games/${game.id}/edit`} className="block text-center text-sm text-muted underline">
-        Edit game details
-      </Link>
     </div>
   );
 }

@@ -4,7 +4,19 @@ import { useActionState } from "react";
 import { saveScore } from "@/app/actions";
 import FormMessage from "@/components/FormMessage";
 
-export default function ScoreForm({ id, ours, theirs, opponent }: { id: string; ours: string; theirs: string; opponent: string }) {
+export default function ScoreForm({
+  id,
+  ours,
+  theirs,
+  opponent,
+  story,
+}: {
+  id: string;
+  ours: string;
+  theirs: string;
+  opponent: string;
+  story: string;
+}) {
   const [state, action, pending] = useActionState(saveScore, {});
   return (
     <form action={action} className="space-y-4">
@@ -23,10 +35,25 @@ export default function ScoreForm({ id, ours, theirs, opponent }: { id: string; 
           <input id="their_score" name="their_score" type="number" inputMode="numeric" min={0} max={99} defaultValue={theirs} className="input text-center text-2xl font-bold" />
         </div>
       </div>
+      <div>
+        <label className="label" htmlFor="story">
+          Game Story (optional)
+        </label>
+        <textarea
+          id="story"
+          name="story"
+          rows={4}
+          maxLength={2000}
+          defaultValue={story}
+          className="input"
+          placeholder="Big hit in the 6th, stole two in the 8th…"
+        />
+      </div>
       <FormMessage state={state} />
       <button className="btn w-full" disabled={pending}>
-        {pending ? "Saving…" : "Save score"}
+        {pending ? "Saving…" : "Save & notify team"}
       </button>
+      <p className="text-center text-xs text-muted">Everyone with notifications on gets the result and story.</p>
     </form>
   );
 }

@@ -7,7 +7,8 @@ import { lock, requireUnlocked, unlock } from "@/lib/auth";
 import { PHOTO_BUCKET, POSITIONS, T, TIMEZONE } from "@/lib/config";
 import { localInputToDate } from "@/lib/time";
 import { getGame } from "@/lib/data";
-import { sendPush } from "@/lib/push";
+import { getSubscriptions, sendPush } from "@/lib/push";
+import { resultMessage } from "@/lib/reminder";
 
 export type FormState = { error?: string; ok?: string };
 
@@ -108,9 +109,10 @@ export async function deleteGame(id: string): Promise<void> {
   redirect("/");
 }
 
+/** Anyone can enter a score (no PIN). A new or changed result is pushed to the whole team. */
 export async function saveScore(_: FormState, form: FormData): Promise<FormState> {
-  await requireUnlocked();
   const id = str(form, "id");
+  const story = str(form, "story").slice(0, 2000) || null;
   const ours = str(form, "our_score");
   const theirs = str(form, "their_score");
   const parse = (v: string) => (v === "" ? null : Number(v));
@@ -121,10 +123,22 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
   }
   if ((our === null) !== (their === null)) return { error: "Enter both scores (or clear both)" };
 
-  const { error } = await db().from(T.games).update({ our_score: our, their_score: their }).eq("id", id);
+  const before = await getGame(id);
+  if (!before) return { error: "Game not found" };
+  if (new Date(before.starts_at).getTime() > Date.now()) return { error: "This game hasn't started yet" };
+
+  const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story }).eq("id", id);
   if (error) return { error: error.message };
+
+  const changed = before.our_score !== our || before.their_score !== their || (before.story ?? null) !== story;
+  if (changed && our !== null && their !== null) {
+    const after = { ...before, our_score: our, their_score: their, story };
+    const message = { ...resultMessage(after), url: `/games/${id}` };
+    await Promise.all((await getSubscriptions()).map((sub) => sendPush(sub, message)));
+  }
+
   revalidatePath("/");
-  redirect("/");
+  redirect(`/games/${id}`);
 }
 
 export async function saveRoster(_: FormState, form: FormData): Promise<FormState> {

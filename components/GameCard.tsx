@@ -56,13 +56,17 @@ export default function GameCard({
           )}
         </div>
       </div>
+      {game.story && (
+        <blockquote className="mb-3 border-l-4 border-stone-blue pl-3 text-sm whitespace-pre-line">{game.story}</blockquote>
+      )}
       <GameLineup game={game} players={players} canMarkAway={!started} />
-      {unlocked && started && (
-        <div className="mt-3 text-sm">
-          <Link href={`/games/${game.id}/score`} className={result ? "btn-ghost py-1.5" : "btn py-1.5"}>
-            {result ? "Change score" : "Enter score"}
-          </Link>
-        </div>
+      {started && (
+        <Link
+          href={`/games/${game.id}/score`}
+          className={`mt-3 w-full text-sm ${result ? "btn-ghost py-1.5" : "btn py-2"}`}
+        >
+          {result ? "Update score" : "Enter score"}
+        </Link>
       )}
     </article>
   );

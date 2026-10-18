@@ -53,6 +53,11 @@ export function localDateKey(date: Date, timeZone: string): string {
   return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 }
 
+/** Hour of day (0–23) of `date` in `timeZone`. */
+export function localHour(date: Date, timeZone: string): number {
+  return parts(date, timeZone).hour;
+}
+
 /** Calendar date of the day after `now` in `timeZone`. */
 export function tomorrowKey(now: Date, timeZone: string): string {
   const p = parts(now, timeZone);

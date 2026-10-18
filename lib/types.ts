@@ -18,6 +18,8 @@ export type Game = {
   notes: string | null;
   our_score: number | null;
   their_score: number | null;
+  /** Free-text recap entered with the score; pushed out with the result. */
+  story: string | null;
   reminder_sent_at: string | null;
   lineup: LineupSpot[];
   /** Players who said they can't make it. */

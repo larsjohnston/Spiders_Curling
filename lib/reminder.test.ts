@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gamesDueForReminder, reminderMessage } from "./reminder";
+import { gamesDueForReminder, reminderMessage, resultMessage } from "./reminder";
 import { dateToLocalInput, localInputToDate, tomorrowKey } from "./time";
 import type { Game } from "./types";
 
@@ -24,10 +24,19 @@ describe("time helpers", () => {
 });
 
 describe("gamesDueForReminder", () => {
-  const now = new Date("2026-10-19T00:00:00Z"); // 6pm Oct 18 local
+  const now = new Date("2026-10-19T01:00:00Z"); // 7pm Oct 18 local (MDT)
   const game = (local: string, reminded: string | null = null) => ({
     starts_at: localInputToDate(local, TZ).toISOString(),
     reminder_sent_at: reminded,
+  });
+
+  it("waits until 7pm local, in summer and winter time", () => {
+    const tomorrow = [game("2026-10-19T21:00")];
+    expect(gamesDueForReminder(tomorrow, new Date("2026-10-19T00:59:00Z"))).toHaveLength(0); // 6:59pm MDT
+    expect(gamesDueForReminder(tomorrow, now)).toHaveLength(1);
+    const winter = [game("2026-12-02T21:00")];
+    expect(gamesDueForReminder(winter, new Date("2026-12-02T01:00:00Z"))).toHaveLength(0); // 6pm MST
+    expect(gamesDueForReminder(winter, new Date("2026-12-02T02:00:00Z"))).toHaveLength(1); // 7pm MST
   });
 
   it("picks only unreminded games on tomorrow's local date", () => {
@@ -61,15 +70,38 @@ describe("reminderMessage", () => {
     ],
   };
 
-  it("lists who's playing with the opponent and sheet", () => {
-    expect(reminderMessage(g, null)).toEqual({
-      title: "Game tomorrow 7:00pm vs Smith",
-      body: "7:00pm vs Smith — Sheet 3. Playing: Dave, Mike, Tom, Rob",
+  it("gives opponent, time, sheet and the other three playing", () => {
+    expect(reminderMessage(g, "t")).toEqual({
+      title: "Tomorrow 7:00pm vs Smith",
+      body: "Sheet 3 · Playing with Dave, Mike, Rob",
+    });
+  });
+});
+
+describe("resultMessage", () => {
+  const g = {
+    opponent: "Patel, R.",
+    our_score: 9,
+    their_score: 8,
+    story: null as string | null,
+    lineup: [
+      { position: "skip" as const, player: player("o", "Ostash") },
+      { position: "vice" as const, player: player("e", "Egg") },
+    ],
+  };
+
+  it("puts the result in the title and the story in the body", () => {
+    expect(resultMessage({ ...g, story: "Stole one in the 8th." })).toEqual({
+      title: "Win 9–8 vs Patel, R.",
+      body: "Stole one in the 8th.",
     });
   });
 
-  it("personalizes the title", () => {
-    expect(reminderMessage(g, "t").title).toBe("You're playing tomorrow 7:00pm vs Smith");
-    expect(reminderMessage(g, "x").title).toBe("Game tomorrow 7:00pm vs Smith (you're sitting out)");
+  it("falls back to who played, and trims long stories", () => {
+    expect(resultMessage({ ...g, our_score: 3, their_score: 7 })).toEqual({
+      title: "Loss 3–7 vs Patel, R.",
+      body: "Played: Ostash, Egg",
+    });
+    expect(resultMessage({ ...g, story: "x".repeat(500) }).body).toHaveLength(180);
   });
 });

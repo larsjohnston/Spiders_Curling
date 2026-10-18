@@ -4,7 +4,7 @@ import type { Game, LineupSpot, Player } from "./types";
 import { T, type Position } from "./config";
 
 const GAME_SELECT =
-  "id, starts_at, opponent, sheet, notes, our_score, their_score, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
+  "id, starts_at, opponent, sheet, notes, our_score, their_score, story, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id)";
 
 type GameRow = Omit<Game, "lineup"> & {
   curling_game_players: { position: Position; curling_players: Player }[];
