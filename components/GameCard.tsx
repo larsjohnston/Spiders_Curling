@@ -13,12 +13,15 @@ export default function GameCard({
   next = false,
   unlocked,
   now,
+  opponentRecord,
 }: {
   game: Game;
   players: Player[];
   next?: boolean;
   unlocked: boolean;
   now: number;
+  /** Opponent's league record, e.g. "2–1", from the synced standings. */
+  opponentRecord?: string | null;
 }) {
   const start = new Date(game.starts_at);
   const started = start.getTime() <= now;
@@ -32,7 +35,10 @@ export default function GameCard({
             {formatDay(start, TIMEZONE)} · {formatTime(start, TIMEZONE)}
             {game.sheet && ` · Sheet ${game.sheet}`}
           </div>
-          <div className="truncate text-lg font-semibold">vs {game.opponent}</div>
+          <div className="truncate text-lg font-semibold">
+            vs {game.opponent}
+            {opponentRecord && <span className="ml-1.5 text-base font-medium text-muted tabular-nums">({opponentRecord})</span>}
+          </div>
           {game.notes && <p className="mt-1 text-sm text-muted">{game.notes}</p>}
         </div>
         <div className="flex shrink-0 items-start gap-2">

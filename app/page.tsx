@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getGames, getLeagueSnapshot, getPlayers } from "@/lib/data";
+import { getGames, getLeagueSnapshot, getPlayers, leagueRecord } from "@/lib/data";
 import { isUnlocked } from "@/lib/auth";
 import { TIMEZONE } from "@/lib/config";
 import { formatDay, localDateKey, localInputToDate } from "@/lib/time";
@@ -65,7 +65,15 @@ export default async function SchedulePage() {
         )}
         {agenda.map(({ date, game }) =>
           game ? (
-            <GameCard key={game.id} game={game} players={players} next={game.id === nextId} unlocked={unlocked} now={now} />
+            <GameCard
+              key={game.id}
+              game={game}
+              players={players}
+              next={game.id === nextId}
+              unlocked={unlocked}
+              now={now}
+              opponentRecord={leagueRecord(league, game.opponent)}
+            />
           ) : (
             <div key={date} className="rounded-xl border border-dashed border-line px-4 py-3 text-sm text-muted">
               <span className="font-medium text-ink">{formatDay(localInputToDate(`${date}T12:00`, TIMEZONE), TIMEZONE)}</span> ·

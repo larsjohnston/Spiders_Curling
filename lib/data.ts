@@ -57,6 +57,13 @@ export async function getLeagueSnapshot(): Promise<LeagueSnapshot | null> {
   return (data?.data as LeagueSnapshot) ?? null;
 }
 
+/** A team's league record as "W–L" (plus "–T" when they have ties), or null if they're not in the standings. */
+export function leagueRecord(league: LeagueSnapshot | null, team: string): string | null {
+  const t = league?.standings.find((s) => s.team === team);
+  if (!t) return null;
+  return `${t.wins}–${t.losses}${t.ties ? `–${t.ties}` : ""}`;
+}
+
 /** Unreminded games starting in the next two days; the caller narrows to "tomorrow". */
 export async function getUpcomingUnreminded(now: Date): Promise<Game[]> {
   const until = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
