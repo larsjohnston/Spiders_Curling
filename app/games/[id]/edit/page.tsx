@@ -4,6 +4,7 @@ import { getGame, getPlayers } from "@/lib/data";
 import { unlockedOrRedirect } from "@/lib/guard";
 import { TIMEZONE } from "@/lib/config";
 import { dateToLocalInput } from "@/lib/time";
+import { statusesFor } from "@/lib/types";
 
 export default async function EditGamePage({ params }: PageProps<"/games/[id]/edit">) {
   const { id } = await params;
@@ -23,8 +24,7 @@ export default async function EditGamePage({ params }: PageProps<"/games/[id]/ed
           opponent: game.opponent,
           sheet: game.sheet ?? "",
           notes: game.notes ?? "",
-          lineup: Object.fromEntries(game.lineup.map((s) => [s.position, s.player.id])),
-          away: game.away,
+          status: statusesFor(game),
         }}
       />
     </div>

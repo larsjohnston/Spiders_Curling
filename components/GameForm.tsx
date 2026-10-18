@@ -1,10 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { deleteGame, saveGame } from "@/app/actions";
 import { POSITIONS } from "@/lib/config";
-import type { Player } from "@/lib/types";
+import type { Player, PlayerStatus } from "@/lib/types";
+import Avatar from "./Avatar";
 import FormMessage from "./FormMessage";
+
+const STATUSES: { value: PlayerStatus; symbol: string; label: string; on: string }[] = [
+  { value: "play", symbol: "+", label: "Playing", on: "border-green-600 bg-green-600 text-white" },
+  { value: "sub", symbol: '"', label: "Available, not playing", on: "border-stone-blue bg-stone-blue text-white" },
+  { value: "away", symbol: "−", label: "Unavailable", on: "border-stone-red bg-stone-red text-white" },
+];
 
 type Initial = {
   id?: string;
@@ -12,12 +19,15 @@ type Initial = {
   opponent: string;
   sheet: string;
   notes: string;
-  lineup: Partial<Record<(typeof POSITIONS)[number], string>>;
-  away: string[];
+  status: Record<string, PlayerStatus>;
 };
 
 export default function GameForm({ players, initial }: { players: Player[]; initial: Initial }) {
   const [state, action, pending] = useActionState(saveGame, {});
+  const [status, setStatus] = useState<Record<string, PlayerStatus>>(() =>
+    Object.fromEntries(players.map((p) => [p.id, initial.status[p.id] ?? "sub"])),
+  );
+  const playingCount = Object.values(status).filter((s) => s === "play").length;
   return (
     <form action={action} className="space-y-4">
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
@@ -48,32 +58,47 @@ export default function GameForm({ players, initial }: { players: Player[]; init
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="label">Who&apos;s playing</legend>
-        {POSITIONS.map((pos, i) => (
-          <div key={pos} className="flex items-center gap-3">
-            <span className="w-6 text-sm font-medium text-muted">{i + 1}</span>
-            <select name={`pos_${pos}`} defaultValue={initial.lineup[pos] ?? ""} className="input">
-              <option value="">—</option>
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
-      </fieldset>
-
-      <fieldset>
-        <legend className="label">Away (can&apos;t make it)</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <legend className="label">
+          Who&apos;s playing ({playingCount}/{POSITIONS.length})
+        </legend>
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
           {players.map((p) => (
-            <label key={p.id} className="flex items-center gap-2 rounded-lg border border-line px-2 py-2 text-sm">
-              <input type="checkbox" name="away" value={p.id} defaultChecked={initial.away.includes(p.id)} className="h-4 w-4" />
-              <span className="truncate">{p.name}</span>
-            </label>
+            <li key={p.id} className="flex items-center gap-3 px-3 py-2">
+              <input type="hidden" name={`status_${p.id}`} value={status[p.id]} />
+              <Avatar player={p} size="sm" away={status[p.id] === "away"} />
+              <span className="flex-1 truncate font-medium">{p.name}</span>
+              <div className="flex gap-1" role="radiogroup" aria-label={p.name}>
+                {STATUSES.map((s) => {
+                  const on = status[p.id] === s.value;
+                  const full = s.value === "play" && !on && playingCount >= POSITIONS.length;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      aria-label={s.label}
+                      disabled={full}
+                      onClick={() => setStatus({ ...status, [p.id]: s.value })}
+                      className={`h-10 w-10 rounded-lg border text-lg font-bold disabled:opacity-30 ${
+                        on ? s.on : "border-line text-muted"
+                      }`}
+                    >
+                      {s.symbol}
+                    </button>
+                  );
+                })}
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
+        <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+          {STATUSES.map((s) => (
+            <span key={s.value}>
+              <b className="text-ink">{s.symbol}</b> {s.label}
+            </span>
+          ))}
+        </p>
       </fieldset>
 
       <div>

@@ -24,6 +24,17 @@ export type Game = {
   away: string[];
 };
 
+/** Per-game status on the edit form: + playing, " available sub, − unavailable. */
+export type PlayerStatus = "play" | "sub" | "away";
+
+/** Status for each player in a game. Away wins over playing so a starter who dropped out is visible. */
+export function statusesFor(game: Pick<Game, "lineup" | "away">): Record<string, PlayerStatus> {
+  const out: Record<string, PlayerStatus> = {};
+  for (const s of game.lineup) out[s.player.id] = "play";
+  for (const id of game.away) out[id] = "away";
+  return out;
+}
+
 export type Result = "W" | "L" | "T";
 
 export function resultOf(g: Pick<Game, "our_score" | "their_score">): Result | null {

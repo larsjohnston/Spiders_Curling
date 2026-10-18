@@ -44,12 +44,15 @@ export async function saveGame(_: FormState, form: FormData): Promise<FormState>
     return { error: "Invalid date/time" };
   }
 
-  const lineup = POSITIONS.map((position) => ({ position, player_id: str(form, `pos_${position}`) })).filter(
-    (s) => s.player_id,
-  );
-  if (new Set(lineup.map((s) => s.player_id)).size !== lineup.length) {
-    return { error: "A player can only be in one position" };
-  }
+  // One status_<playerId> field per player: play | sub | away.
+  const statuses = [...form.entries()]
+    .filter(([key]) => key.startsWith("status_"))
+    .map(([key, value]) => ({ player_id: key.slice("status_".length), status: String(value) }));
+  const playing = statuses.filter((s) => s.status === "play").map((s) => s.player_id);
+  const away = statuses.filter((s) => s.status === "away").map((s) => s.player_id);
+  if (playing.length > POSITIONS.length) return { error: `Only ${POSITIONS.length} can play` };
+  // Positions rotate, so slots are just filled in roster order.
+  const lineup = playing.map((player_id, i) => ({ position: POSITIONS[i], player_id }));
 
   const fields = {
     opponent,
@@ -84,7 +87,6 @@ export async function saveGame(_: FormState, form: FormData): Promise<FormState>
     if (error) return { error: error.message };
   }
 
-  const away = form.getAll("away").map(String);
   const clear = await db().from(T.away).delete().eq("game_id", gameId);
   if (clear.error) return { error: clear.error.message };
   if (away.length) {

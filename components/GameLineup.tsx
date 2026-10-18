@@ -7,7 +7,7 @@ import type { Game, Player } from "@/lib/types";
 import Avatar from "./Avatar";
 import { useMe } from "./useMe";
 
-/** The four playing (big), the rest as subs (small), ✕ on anyone away, and an away toggle for "me". */
+/** Playing (left) and subs (right), ✕ on anyone away, and an away toggle for "me". */
 export default function GameLineup({
   game,
   players,
@@ -26,52 +26,39 @@ export default function GameLineup({
   const meKnown = !!me && players.some((p) => p.id === me);
   const meAway = !!me && away.has(me);
 
+  const heading = "mb-2 text-xs font-semibold uppercase tracking-wide text-muted";
+
   return (
     <div className="space-y-3">
-      {spots.length > 0 ? (
-        // Two columns: the four playing on the left, everyone else (subs) on the right.
-        <div className="flex gap-3">
-          <ul className="grid flex-1 grid-cols-2 gap-x-2 gap-y-3">
-            {spots.map((s) => (
-              <li key={s.position} className="flex flex-col items-center text-center">
-                <Avatar player={s.player} size="md" away={away.has(s.player.id)} highlight={s.player.id === me} />
-                <span className="mt-1 w-full truncate text-sm font-medium">{s.player.name}</span>
-              </li>
-            ))}
-          </ul>
-          {subs.length > 0 && (
-            <div className="w-24 shrink-0 border-l border-line pl-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Subs</div>
-              <ul className="space-y-2">
-                {subs.map((p) => (
-                  <li key={p.id} className="flex items-center gap-1.5">
-                    <Avatar player={p} size="sm" away={away.has(p.id)} highlight={p.id === me} />
-                    <span className={`truncate text-sm ${away.has(p.id) ? "text-muted line-through" : ""}`}>
-                      {p.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      {/* Two columns: who's playing on the left, everyone else (subs) on the right. */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className={heading}>Playing</div>
+          {spots.length > 0 ? (
+            <ul className="space-y-2">
+              {spots.map((s) => (
+                <li key={s.position} className="flex items-center gap-2">
+                  <Avatar player={s.player} size="md" away={away.has(s.player.id)} highlight={s.player.id === me} />
+                  <span className="truncate font-medium">{s.player.name}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">Not set yet</p>
           )}
         </div>
-      ) : (
-        <p className="text-sm text-muted">Lineup not set yet</p>
-      )}
-
-      {spots.length === 0 && subs.length > 0 && (
-        <div className="flex items-center gap-3 border-t border-line pt-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">Team</span>
-          <ul className="flex flex-wrap gap-3">
+        <div className="border-l border-line pl-3">
+          <div className={heading}>Subs</div>
+          <ul className="space-y-2">
             {subs.map((p) => (
-              <li key={p.id} className="flex items-center gap-1.5">
+              <li key={p.id} className="flex items-center gap-2">
                 <Avatar player={p} size="sm" away={away.has(p.id)} highlight={p.id === me} />
-                <span className={`text-sm ${away.has(p.id) ? "text-muted line-through" : ""}`}>{p.name}</span>
+                <span className={`truncate text-sm ${away.has(p.id) ? "text-muted line-through" : ""}`}>{p.name}</span>
               </li>
             ))}
           </ul>
         </div>
-      )}
+      </div>
 
       {canMarkAway && meKnown && (
         <button
