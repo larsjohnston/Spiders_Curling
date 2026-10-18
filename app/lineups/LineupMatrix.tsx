@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { setPlayerStatus } from "../actions";
-import { TEAM_SIZE, type Player, type PlayerStatus } from "@/lib/types";
+import { TEAM_SIZE, type Player, type PlayerStatus, type Result } from "@/lib/types";
 import Avatar from "@/components/Avatar";
+import { RESULT_STYLE } from "@/components/GameCard";
 
 type Row = {
   id: string;
@@ -11,6 +12,9 @@ type Row = {
   time: string;
   opponent: string;
   record: string | null;
+  /** Game has started: counts toward "played", shows its result, never flagged short-handed. */
+  past: boolean;
+  result: Result | null;
   status: Record<string, PlayerStatus>;
 };
 
@@ -21,9 +25,11 @@ const LOOK: Record<PlayerStatus, { symbol: string; label: string; cls: string }>
 };
 
 /** Per-player season totals so playing time can be kept even: played so far + booked (+) in upcoming games. */
-function Totals({ players, rows, played }: { players: Player[]; rows: Row[]; played: Record<string, number> }) {
-  const booked = (id: string) => rows.filter((r) => r.status[id] === "play").length;
-  const totals = players.map((p) => (played[p.id] ?? 0) + booked(p.id));
+function Totals({ players, rows }: { players: Player[]; rows: Row[] }) {
+  const count = (id: string, past: boolean) => rows.filter((r) => r.past === past && r.status[id] === "play").length;
+  const played = Object.fromEntries(players.map((p) => [p.id, count(p.id, true)]));
+  const booked = (id: string) => count(id, false);
+  const totals = players.map((p) => played[p.id] + booked(p.id));
   const min = Math.min(...totals);
   const max = Math.max(...totals);
   const label = "py-1 text-[10px] font-semibold uppercase tracking-wide text-muted";
@@ -37,7 +43,7 @@ function Totals({ players, rows, played }: { players: Player[]; rows: Row[]; pla
       <tr>
         {players.map((p) => (
           <td key={p.id} className="text-sm">
-            {played[p.id] ?? 0}
+            {played[p.id]}
           </td>
         ))}
       </tr>
@@ -86,16 +92,7 @@ function nextStatus(current: PlayerStatus, playing: number): PlayerStatus {
   return "sub";
 }
 
-export default function LineupMatrix({
-  games,
-  players,
-  played,
-}: {
-  games: Row[];
-  players: Player[];
-  /** Past games each player was in the lineup for. */
-  played: Record<string, number>;
-}) {
+export default function LineupMatrix({ games, players }: { games: Row[]; players: Player[] }) {
   const [rows, setRows] = useState(games);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -119,7 +116,7 @@ export default function LineupMatrix({
     }
   }
 
-  if (rows.length === 0) return <p className="text-muted">No upcoming games.</p>;
+  if (rows.length === 0) return <p className="text-muted">No games yet.</p>;
 
   return (
     <div className="space-y-3">
@@ -138,12 +135,18 @@ export default function LineupMatrix({
             </tr>
           </thead>
           {/* Each game: a full-width title line, then one button per player under their photo. */}
-          {rows.map((r) => {
+          {rows.map((r, i) => {
             const playing = players.filter((p) => r.status[p.id] === "play").length;
             const available = players.filter((p) => r.status[p.id] !== "away").length;
-            const short = available < TEAM_SIZE;
+            const short = !r.past && available < TEAM_SIZE;
+            const firstUpcoming = !r.past && (i === 0 || rows[i - 1].past);
             return (
-              <tbody key={r.id} className={`border-b border-line last:border-0 ${short ? "bg-amber-500/10" : ""}`}>
+              <tbody
+                key={r.id}
+                className={`border-b border-line last:border-0 ${short ? "bg-amber-500/10" : r.past ? "bg-ice/60" : ""} ${
+                  firstUpcoming && i > 0 ? "border-t-4 border-t-stone-blue" : ""
+                }`}
+              >
                 <tr>
                   <td colSpan={players.length} className="px-3 pt-2.5">
                     <div className="flex items-baseline justify-between gap-2">
@@ -153,14 +156,20 @@ export default function LineupMatrix({
                         <b>{r.opponent}</b>
                         {r.record && <span className="text-muted tabular-nums"> ({r.record})</span>}
                       </span>
-                      <span
-                        className={`shrink-0 text-xs font-semibold tabular-nums ${
-                          playing === TEAM_SIZE ? "text-green-600" : short ? "text-amber-600" : "text-muted"
-                        }`}
-                      >
-                        {short ? `only ${available} avail · ` : ""}
-                        {playing}/{TEAM_SIZE}
-                      </span>
+                      {r.past ? (
+                        <span className={`shrink-0 text-lg leading-none font-black ${r.result ? RESULT_STYLE[r.result] : "text-muted"}`}>
+                          {r.result ?? "–"}
+                        </span>
+                      ) : (
+                        <span
+                          className={`shrink-0 text-xs font-semibold tabular-nums ${
+                            playing === TEAM_SIZE ? "text-green-600" : short ? "text-amber-600" : "text-muted"
+                          }`}
+                        >
+                          {short ? `only ${available} avail · ` : ""}
+                          {playing}/{TEAM_SIZE}
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -186,7 +195,7 @@ export default function LineupMatrix({
               </tbody>
             );
           })}
-          <Totals players={players} rows={rows} played={played} />
+          <Totals players={players} rows={rows} />
         </table>
       </div>
       {error && <p className="text-sm font-medium text-stone-red">{error}</p>}
