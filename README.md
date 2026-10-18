@@ -21,7 +21,7 @@ notification the evening before every game with the opponent and the four playin
 
 1. **Supabase**: run `supabase/migrations/0001_init.sql` in the SQL editor of any project.
    Tables are prefixed `curling_` so they can share a project with other apps.
-   It seeds six placeholder players; rename them on the **Roster** page after unlocking.
+   It seeds the six-man roster; edit it on the **Roster** page after unlocking.
 2. **VAPID keys**: `npx web-push generate-vapid-keys`
 3. **Vercel**: import this repo and set the env vars listed in `.env.example`.
    `vercel.json` registers the daily cron; Vercel sends `CRON_SECRET` automatically.

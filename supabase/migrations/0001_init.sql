@@ -44,7 +44,6 @@ alter table curling_games enable row level security;
 alter table curling_game_players enable row level security;
 alter table curling_push_subscriptions enable row level security;
 
--- Placeholder roster; rename on the Roster page.
 insert into curling_players (name, sort_order) values
-  ('Player 1', 1), ('Player 2', 2), ('Player 3', 3),
-  ('Player 4', 4), ('Player 5', 5), ('Player 6', 6);
+  ('Lars', 1), ('Ostash', 2), ('Mendy', 3),
+  ('Tamags', 4), ('Egg', 5), ('Tup', 6);
