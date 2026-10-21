@@ -3,7 +3,8 @@ import { TIMEZONE } from "@/lib/config";
 import { formatDay, formatTime } from "@/lib/time";
 import { availableCount, effectiveResult, resultOf, TEAM_SIZE, type Game, type Player } from "@/lib/types";
 import GameLineup from "./GameLineup";
-import BeerBadge from "./BeerBadge";
+import JugCounter from "./JugCounter";
+import Linescore from "./Linescore";
 import ScoutingButton from "./ScoutingButton";
 
 export const RESULT_STYLE = { W: "text-green-600", L: "text-stone-red", T: "text-muted" } as const;
@@ -63,9 +64,6 @@ export default function GameCard({
               <div className="mt-1 text-sm font-semibold tabular-nums text-muted">
                 {scored ? `${game.our_score}–${game.their_score}` : "League result"}
               </div>
-              <div className="mt-1.5">
-                <BeerBadge jugs={game.jugs} />
-              </div>
             </div>
           ) : next ? (
             <span className="rounded-full bg-stone-blue px-2 py-0.5 text-xs font-semibold text-white">Next</span>
@@ -81,10 +79,16 @@ export default function GameCard({
           )}
         </div>
       </div>
+      {game.ends && game.ends.length > 0 && (
+        <div className="mb-3">
+          <Linescore ends={game.ends} opponent={game.opponent} />
+        </div>
+      )}
       {game.story && (
         <blockquote className="mb-3 border-l-4 border-stone-blue pl-3 text-sm whitespace-pre-line">{game.story}</blockquote>
       )}
       <GameLineup game={game} players={players} canMarkAway={!started} />
+      <JugCounter gameId={game.id} jugs={game.jugs} />
       {started && (
         <Link
           href={`/games/${game.id}/score`}

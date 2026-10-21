@@ -50,7 +50,7 @@ export async function syncLeague(
     if (error) throw error;
   }
   for (const { id, league_result, clearScore } of plan.results) {
-    const patch = clearScore ? { league_result, our_score: null, their_score: null } : { league_result };
+    const patch = clearScore ? { league_result, our_score: null, their_score: null, ends: null } : { league_result };
     const { error } = await db().from(T.games).update(patch).eq("id", id);
     if (error) throw error;
   }

@@ -27,7 +27,7 @@ export default async function ScorePage({ params }: PageProps<"/games/[id]/score
         ours={game.our_score?.toString() ?? ""}
         theirs={game.their_score?.toString() ?? ""}
         story={game.story ?? ""}
-        jugs={game.jugs}
+        ends={game.ends}
       />
       <GameLineup game={game} players={players} canMarkAway={false} />
     </div>

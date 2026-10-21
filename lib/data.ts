@@ -6,7 +6,7 @@ import type { LeagueWeek } from "./league";
 import { DEFAULT_LEAGUE, T, type LeagueConfig, type Position } from "./config";
 
 const GAME_SELECT =
-  "id, season, starts_at, opponent, sheet, notes, our_score, their_score, story, jugs, league_result, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id, excuse)";
+  "id, season, starts_at, opponent, sheet, notes, our_score, their_score, story, jugs, ends, league_result, reminder_sent_at, curling_game_players(position, curling_players(id, name, sort_order, active, photo_url)), curling_away(player_id, excuse)";
 
 type GameRow = Omit<Game, "lineup" | "away" | "excuses"> & {
   curling_game_players: { position: Position; curling_players: Player }[];

@@ -10,7 +10,8 @@ import { getGame, getLeagueConfig, getPlayers } from "@/lib/data";
 import { getSubscriptions, sendPush } from "@/lib/push";
 import { availabilityMessage, resultMessage } from "@/lib/reminder";
 import { EXCUSE_MAX } from "@/lib/excuses";
-import { availableCount, resultOf, type PlayerStatus } from "@/lib/types";
+import { availableCount, resultOf, type End, type PlayerStatus } from "@/lib/types";
+import { endTotals, parseEnds, type EndInput } from "@/lib/ends";
 import { previewSheet, syncLeague, type SheetPreview } from "@/lib/leagueRun";
 import { normalizeSheetUrl } from "@/lib/league";
 
@@ -120,14 +121,35 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
   const ours = str(form, "our_score");
   const theirs = str(form, "their_score");
   const parse = (v: string) => (v === "" ? null : Number(v));
-  const our = parse(ours);
-  const their = parse(theirs);
+  let our = parse(ours);
+  let their = parse(theirs);
   for (const v of [our, their]) {
     if (v !== null && (!Number.isInteger(v) || v < 0 || v > 99)) return { error: "Scores must be whole numbers" };
   }
   if ((our === null) !== (their === null)) return { error: "Enter both scores (or clear both)" };
-  const jugs = parse(str(form, "jugs"));
-  if (jugs !== null && (!Number.isInteger(jugs) || jugs < 0 || jugs > 99)) return { error: "Jugs must be 0–99" };
+
+  // Optional end-by-end entry: the ends are the source of truth and the totals follow from them.
+  let ends: End[] | null = null;
+  const rawEnds = str(form, "ends");
+  if (rawEnds) {
+    let rows: unknown;
+    try {
+      rows = JSON.parse(rawEnds);
+    } catch {
+      return { error: "Couldn't read the ends" };
+    }
+    if (!Array.isArray(rows) || !rows.every((r) => r && typeof r.us === "string" && typeof r.them === "string")) {
+      return { error: "Couldn't read the ends" };
+    }
+    const parsed = parseEnds(rows as EndInput[]);
+    if ("error" in parsed) return parsed;
+    if (parsed.ends.length) {
+      ends = parsed.ends;
+      const totals = endTotals(ends);
+      our = totals.us;
+      their = totals.them;
+    }
+  }
 
   const before = await getGame(id);
   if (!before) return { error: "Game not found" };
@@ -139,19 +161,28 @@ export async function saveScore(_: FormState, form: FormData): Promise<FormState
     return { error: `The league has this game as a ${word}. Check the score with the skip.` };
   }
 
-  const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story, jugs }).eq("id", id);
+  const { error } = await db().from(T.games).update({ our_score: our, their_score: their, story, ends }).eq("id", id);
   if (error) return { error: error.message };
 
-  // Topping up the jug count alone doesn't re-announce the result.
   const changed = before.our_score !== our || before.their_score !== their || (before.story ?? null) !== story;
   if (changed && our !== null && their !== null) {
-    const after = { ...before, our_score: our, their_score: their, story, jugs };
+    const after = { ...before, our_score: our, their_score: their, story, ends };
     const message = { ...resultMessage(after), url: `/games/${id}` };
     await Promise.all((await getSubscriptions()).map((sub) => sendPush(sub, message)));
   }
 
   revalidatePath("/");
   redirect(`/games/${id}`);
+}
+
+/** Jug counter on the game card: anyone can bump it any time, before or after the game. */
+export async function setJugs(id: string, jugs: number): Promise<{ jugs: number } | { error: string }> {
+  if (!Number.isInteger(jugs) || jugs < 0 || jugs > 99) return { error: "Jugs must be 0–99" };
+  const { error } = await db().from(T.games).update({ jugs }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  revalidatePath(`/games/${id}`);
+  return { jugs };
 }
 
 export async function saveRoster(_: FormState, form: FormData): Promise<FormState> {

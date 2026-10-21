@@ -10,6 +10,9 @@ export type Player = {
 
 export type LineupSpot = { position: Position; player: Player };
 
+/** One end's score. In curling only one side scores an end; a blank end is 0–0. */
+export type End = { us: number; them: number };
+
 export type Game = {
   id: string;
   season: string;
@@ -21,8 +24,10 @@ export type Game = {
   their_score: number | null;
   /** Free-text recap entered with the score; pushed out with the result. */
   story: string | null;
-  /** Jugs of beer after the game. */
+  /** Jugs of beer, counted before, during and after the game. */
   jugs: number | null;
+  /** End-by-end score when someone entered one; our_score/their_score are the totals. */
+  ends: End[] | null;
   /** W/L/T as posted on the league sheet (the league doesn't publish scores). */
   league_result: Result | null;
   reminder_sent_at: string | null;
