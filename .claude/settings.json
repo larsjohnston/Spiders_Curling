@@ -54,7 +54,8 @@
       "mcp__github__merge_pull_request",
       "mcp__github__push_files",
       "mcp__github__create_or_update_file",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "mcp__Supabase__execute_sql"
     ],
     "deny": [
       "Bash(git push --force*)",
