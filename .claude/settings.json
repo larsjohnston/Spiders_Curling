@@ -56,7 +56,9 @@
       "mcp__github__create_or_update_file",
       "Bash(git push *)",
       "mcp__Supabase__execute_sql",
-      "mcp__Supabase__apply_migration"
+      "mcp__Supabase__apply_migration",
+      "mcp__claude-code-remote__add_repo",
+      "mcp__Claude_Code_Remote__add_repo"
     ],
     "deny": [
       "Bash(git push --force*)",
