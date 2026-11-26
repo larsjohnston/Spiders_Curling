@@ -401,6 +401,20 @@ export async function unsubscribe(endpoint: string): Promise<void> {
 }
 
 /** Sends a test push to just this device. */
+/** Announce page: a one-off message from the manager to everyone with notifications on. */
+export async function announce(_: FormState, form: FormData): Promise<FormState> {
+  await requireUnlocked();
+  const title = str(form, "title").slice(0, 80);
+  const body = str(form, "body").slice(0, 300);
+  const url = str(form, "url") || "/";
+  if (!title) return { error: "Give it a title" };
+  const subs = await getSubscriptions();
+  if (subs.length === 0) return { error: "Nobody has notifications on yet" };
+  const results = await Promise.all(subs.map((sub) => sendPush(sub, { title, body, url: safeNext(url) })));
+  const sent = results.filter(Boolean).length;
+  return { ok: `Sent to ${sent} of ${subs.length} device${subs.length === 1 ? "" : "s"}.` };
+}
+
 export async function sendTest(endpoint: string): Promise<FormState> {
   const { data: sub, error } = await db()
     .from(T.subscriptions)

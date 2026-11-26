@@ -93,6 +93,9 @@ export default function HeaderNav({ players, unlocked }: { players: Pick<Player,
                 <Link href="/season" className={item}>
                   Season
                 </Link>
+                <Link href="/announce" className={item}>
+                  📣 Announce
+                </Link>
                 <form action={lockAction} onSubmit={() => setOpen(false)}>
                   <button className={`${item} text-muted`}>Lock editing</button>
                 </form>
